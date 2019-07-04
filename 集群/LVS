@@ -1,0 +1,55 @@
+LVS(内核的)并发量和性能上比nginx高
+只支持４层调度（tcp/udp）
+
+提高性能
+降低成本
+提高可扩展性
+增强可靠性
+
+高性能计算机集群HPC
+         解决复杂的科学问题
+负载均衡集群LB
+     　　负载平均分摊
+高可用集群HA
+      　　避免单点故障，单个系统故障，可以快速迁移
+
+LVS的负载平衡方式
+VS/NAT：通过网络地址转换实现的虚拟服务器。Director将用户请求报文的目的地址改成选定的Real Server地址后，转发给Real Server。大并发访问时，调度器的性能成为瓶颈。
+VS/DR：直接使用路由技术实现虚拟服务器。通过改写请求报文的MAC地址，将请求发至Real Server，Real Server直接响应客户端。
+VS/TUN：通过隧道方式实现虚拟服务器。Director采用隧道技术将请求发至Real Server后，Real Server直接响应客户端。
+
+
+LVS NAT模式
+客户机请求和服务器回应都是通过调度器（调度器的流量较大，容易到达峰值）
+客户机与服务机不能直接通信　
+调度器需要开启路由转发功能
+永久设置路由转发的配置文件　/etc/sysctl.conf
+ipvsadm -A 添加虚拟服务器
+ipvsadm -E　修改虚拟服务器
+ipvsadm -D　删除虚拟服务器
+ipvsadm -C　清空所有
+ipvsadm -a　添加真实服务器
+ipvsadm -e　修改真实服务器
+ipvsadm -d　删除真实服务器
+ipvsadm -L　查看LVS规则表
+ipvsadm -s　指定集群算法
+
+LVS DR模式
+客户机请求通过调度器访问服务器，服务器回应是直接回应给客户机，不经过调度器（不容易到达峰值）
+客户机与服务器能直接通信
+调度器的一张网卡上由2个ip，物理网卡配置DIP,虚拟网卡配置VIP(客户端访问的ip),服务机上的本地回环网卡虚拟一个网卡配置VIP(客户端访问的ip)
+
+WEB服务器端配置了与调度器一样的VIP,为了避免冲突，需要在web服务器端修改下列文件
+[root@web2 ~]# vim /etc/sysctl.conf
+#手动写入如下4行内容
+net.ipv4.conf.all.arp_ignore = 1
+net.ipv4.conf.lo.arp_ignore = 1
+net.ipv4.conf.lo.arp_announce = 2
+net.ipv4.conf.all.arp_announce = 2
+
+修改完使用下面命令生效
+sysctl -p
+
+
+
+

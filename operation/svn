@@ -1,0 +1,84 @@
+                                       安装Subversion服务器
+1）YUM安装subversion软件
+[root@web1 ~]# yum -y install subversion
+
+2)创建版本库
+[root@web1 ~]# mkdir /var/svn/ 
+[root@web1 ~]# svnadmin create /var/svn/project
+[root@web1 ~]# ls /var/svn/project/
+conf/  db/  format  hooks/  locks/  README.txt
+
+3）本地导入初始化数据
+[root@web1 ~]# cd /usr/lib/systemd/system/ 
+[root@web1 ~]# svn import . file:///var/svn/project/ -m "Init Data"
+
+4）修改配置文件，创建账户与密码
+所有配置文件，要求顶头写，开头不要有空格。
+[root@web1 ~]# vim /var/svn/project/conf/svnserve.conf
+[general]
+### These options control access to the repository for unauthenticated
+### and authenticated users.  Valid values are "write", "read",
+### and "none".  The sample settings below are the defaults.
+anon-access = none
+//19行，匿名无任何权限
+auth-access = write
+//20行，有效账户可写
+password-db = passwd
+//27行，密码文件
+authz-db = authz
+//34行，ACL访问控制列表文件
+[root@web1 ~]# vim /var/svn/project/conf/passwd 
+… …
+[users]
+harry = 123456
+//用户名和密码
+tom = 123456
+//用户名和密码
+[root@web1 ~]# cat /var/svn/project/conf/authz 
+[/]                                //定义ACL访问控制
+harry = rw                        //用户对项目根路径可读可写
+tom = rw
+
+5）启动服务
+[root@web1 ~]# svnserve -d  -r /var/svn/project  //d代表后台运行 r代表仓库路径
+[root@web1 ~]# netstat -nutlp |grep svnserve
+
+
+                                       客户端测试
+1）将服务器上的代码下载到本地
+[root@web2 ~]# cd /tmp
+[root@web2 ~]# svn --username harry --password 123456 \
+co svn://192.168.2.100/ code        
+//建立本地副本,从服务器192.168.2.100上co下载代码到本地code目录
+//用户名harry,密码123456
+
+[root@web2 code]# svn info     svn://192.168.2.100    //查看版本仓库基本信息
+[root@web2 code]# svn log     svn://192.168.2.100    //查看版本仓库的日志
+[root@web2 code]# svn ci -m "modify user"        //将本地修改的数据同步到服务器
+[root@web2 code]# svn rm timers.target            //使用svn删除文件
+[root@web2 code]# svn add test.sh                //将文件或目录加入版本控制
+[root@web2 code]# svn cat svn://192.168.2.100/reboot.target    //查看服务器文件的内容
+[root@web2 code]# svn revert tmp.mount            //还原tmp.mount文件
+[root@web2 code]# svn merge -r7:2    tuned.service    //将文件从版本7还原到版本2
+
+
+使用dump指令备份版本库数据
+[root@web1 ~]# svnadmin dump /var/svn/project > project.bak  //备份
+[root@web1 ~]# svnadmin create /var/svn/project2               //新建空仓库
+[root@web1 ~]# svnadmin load /var/svn/project2 < project.bak      //还原
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

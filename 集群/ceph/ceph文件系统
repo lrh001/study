@@ -1,0 +1,46 @@
+1）添加一台新的虚拟机，要求如下：
+IP地址:192.168.4.14
+主机名:node4
+配置yum源（包括rhel、ceph的源）
+与Client主机同步时间
+node1允许无密码远程node4
+
+2）部署元数据服务器
+登陆node4，安装ceph-mds软件包
+[root@node4 ~]# yum -y install ceph-mds 
+
+登陆node1部署节点操作
+[root@node1 ~]# cd  /root/ceph-cluster
+//该目录，是最早部署ceph集群时，创建的目录
+[root@node1 ceph-cluster]# ceph-deploy mds create node4
+//给nod4拷贝配置文件，启动mds服务
+
+同步配置文件和key
+[root@node1 ceph-cluster]# ceph-deploy admin node4
+
+3）创建存储池
+[root@node4 ~]# ceph osd pool create cephfs_data 128
+//创建存储池，对应128个PG
+[root@node4 ~]# ceph osd pool create cephfs_metadata 128
+//创建存储池，对应128个PG
+
+5）创建Ceph文件系统
+[root@node4 ~]# ceph mds stat                     //查看mds状态
+e2:, 1 up:standby
+[root@node4 ~]# ceph fs new myfs1 cephfs_metadata cephfs_data
+new fs with metadata pool 2 and data pool 1
+//注意，现写medadata池，再写data池
+//默认，只能创建1个文件系统，多余的会报错
+[root@node4 ~]# ceph fs ls
+name: myfs1, metadata pool: cephfs_metadata, data pools: [cephfs_data ]
+[root@node4 ~]# ceph mds stat
+e4: 1/1/1 up {0=node4=up:creating}
+
+6）客户端挂载
+[root@client ~]# mount -t ceph 192.168.4.11:6789:/  /mnt/cephfs/ \
+-o name=admin,secret=AQBTsdRapUxBKRAANXtteNUyoEmQHveb75bISg==
+//注意:文件系统类型为ceph
+//192.168.4.11为MON节点的IP（不是MDS节点）
+//admin是用户名,secret是密钥
+//密钥可以在/etc/ceph/ceph.client.admin.keyring中找到
+

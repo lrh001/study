@@ -1,0 +1,34 @@
+1.什么是分库分表?
+将存放在一个数据库的数据,按照特定的方式进行拆分,分散存放到多个数据库中,以达到分散单台设备负载的效果
+
+2.Mycat软件介绍
+
+1)基于Java的分布式数据库系统中间层,为高并发下的分布式提供解决方案
+2)支持JDBC形式连接
+3)支持MySQL,Oracle,SQLserver,Mongodb等
+4)提供数据读写分离服务,可以实现数据库服务器的高可用,提供数据分片服务
+5)基于阿里巴巴Cobar进行研发的开源软件
+6)适合数据大量写入数据的存储需求
+
+3.mycat支持多少种分片规则并说出名字?
+
+ 一共10种
+
+1)枚举法sharding-by-intfile
+2)固定分片 rule1
+3)范围约定auto-sharding-long
+4)求模法mod-long
+5)日期列分区法sharding-by-date
+6)通配取模sharding-by-pattern
+7)ASCII码求模通配sharding-by-prefixpattern
+8)编程指定sharding-by-substring
+9)字符串拆分hash解析sharding-by-stringhash
+10)一致性hash sharding-by-murmur
+
+4.mycat重要配置文件有几个,分别有什么作用?
+ 有3个
+server.xml设置连mycat的账号信息
+schema.xml配置mycat的真实库表
+rule.xml定义mycat分片规则
+
+

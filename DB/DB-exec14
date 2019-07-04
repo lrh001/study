@@ -1,0 +1,40 @@
+1.简述MongoDB软件的特点
+	答:①安装简单
+	   ②面向文档存储,操作比较简单容易
+	   ③支持丰富的查询方式
+	   ④可以设置任何属性的索引
+	   ⑤支持主流编程语言ruby,pathon,java,php,c++
+	   ⑥支持副本集,分片
+
+2.如何启动和停止Mongodb服务
+	答:
+	启动:/usr/local/mongodb/bin/mongod -f /usr/local/mongodb/etc/mongodb.conf
+	停止:/usr/local/mongodb/bin/mongod -f /usr/local/mongodb/etc/mongodb.conf --shutdown
+
+3.简述数据库名称的规范要求
+	答:
+	①不能是空字符串
+	②不得含有空格,点,$,/,\,和\0
+	③应全部小写
+	④最多64字节
+
+4.基本数据类型有哪些
+	答:
+	①string
+	②bool
+	③数值
+	④数组
+	⑤对象
+	⑥null
+	⑦代码
+	⑧日期
+	⑨内嵌
+	⑩正则表达式
+
+5.使用MongoDB数据库时如何导出数据
+	答:
+	mongoexport --host 192.168.4.50 --port 27050 -d gamedb -c t1 -f name --type=csv -o /mdbak/gamedb_t1.csv
+	mongoexport --host 192.168.4.50 --port 27050 -d gamedb -c t1  --type=json -o /mdbak/gamedb_t1.json
+
+	
+

@@ -1,0 +1,105 @@
+案例1：安装部署Tomcat服务器
+步骤一：部署Tomcat服务器软件(192.168.2.100/24)
+
+1）使用RPM安装JDK环境
+[root@web1 ~]# yum -y install  java-1.8.0-openjdk                //安装JDK
+[root@web1 ~]# yum -y install java-1.8.0-openjdk-headless        //安装JDK
+[root@web1 ~]# java -version                                    //查看JAVA版本
+2）安装Tomcat（apache-tomcat-8.0.30.tar.gz软件包，在lnmp_soft中有提供）
+[root@web1 ~]# tar -xf  apache-tomcat-8.0.30.tar.gz
+[root@web1 ~]# mv apache-tomcat-8.0.30  /usr/local/tomcat
+[root@web1 ~]# ls /usr/local/tomcat
+bin/                                            //主程序目录
+lib/                                            //库文件目录
+logs/                                          //日志目录  
+temp/                                         //临时目录
+work/                                        //自动编译目录jsp代码转换servlet
+conf/                                        //配置文件目录
+webapps/                                        //页面目录
+3）启动服务
+[root@web1 ~]# /usr/local/tomcat/bin/startup.sh
+[root@web1 ~]# firewall-cmd --set-default-zone=trusted
+[root@web1 ~]# setenforce 0
+4）服务器验证端口信息
+[root@web1 ~]# netstat -nutlp |grep java        //查看java监听的端口
+tcp        0      0 :::8080              :::*                LISTEN      2778/java           
+tcp        0      0 ::ffff:127.0.0.1:8005     :::*         LISTEN       2778/java  
+
+提示：如果检查端口时，8005端口启动非常慢，可用使用下面的命令用urandom替换random（非必须操作）。
+[root@web1 ~]# mv /dev/random  /dev/random.bak
+[root@web1 ~]# ln -s /dev/urandom  /dev/random
+5）客户端浏览测试页面
+[root@client ~]# firefox http://192.168.2.100:8080
+
+
+步骤二：修改www.b.com网站的首页目录为base
+
+1）使用docBase参数可以修改默认网站首页路径
+[root@web1 ~]# vim /usr/local/tomcat/conf/server.xml
+… …
+<Host name="www.a.com" appBase="a" unpackWARS="true" autoDeploy="true">
+</Host>
+<Host name="www.b.com" appBase="b" unpackWARS="true" autoDeploy="true">
+<Context path="" docBase="base" reloadable="true"/>
+</Host>
+… …
+[root@web1 ~]# mkdir  /usr/local/tomcat/b/base
+[root@web1 ~]# echo "BASE" > /usr/local/tomcat/b/base/index.html
+[root@web1 ~]# /usr/local/tomcat/bin/shutdown.sh
+[root@web1 ~]# /usr/local/tomcat/bin/startup.sh
+2）测试查看页面是否正确(proxy充当客户端角色)
+[root@proxy ~]# firefox http://www.b.com:8080/        //结果为base目录下的页面内容
+
+
+步骤三：跳转
+
+1）当用户访问http://www.a.com/test打开/var/www/html目录下的页面
+[root@web1 ~]# vim /usr/local/tomcat/conf/server.xml
+… …
+<Host name="www.a.com" appBase="a" unpackWARS="true" autoDeploy="true">
+<Context path="/test" docBase="/var/www/html/" />
+</Host>
+<Host name="www.b.com" appBase="b" unpackWARS="true" autoDeploy="true">
+<Context path="" docBase="base" />
+</Host>
+… …
+[root@web1 ~]# echo "Test" > /var/www/html/index.html
+[root@web1 ~]# /usr/local/tomcat/bin/shutdown.sh
+[root@web1 ~]# /usr/local/tomcat/bin/startup.sh
+2）测试查看页面是否正确(proxy充当客户端角色)
+[root@proxy ~]# firefox http://www.a.com:8080/test    
+//返回/var/www/html/index.html的内容
+//注意，访问的端口为8080
+
+
+步骤四：配置Tomcat支持SSL加密网站
+
+1）创建加密用的私钥和证书文件
+[root@web1 ~]# keytool -genkeypair -alias tomcat -keyalg RSA -keystore /usr/local/tomcat/keystore                //提示输入密码为:123456
+//-genkeypair     生成密钥对
+//-alias tomcat     密钥别名
+//-keyalg RSA     定义密钥算法为RSA算法
+//-keystore         定义密钥文件存储在:/usr/local/tomcat/keystore
+2)再次修改server.xml配置文件，创建支持加密连接的Connector
+[root@web1 ~]# vim /usr/local/tomcat/conf/server.xml
+… …
+<Connector port="8443" protocol="org.apache.coyote.http11.Http11NioProtocol"
+maxThreads="150" SSLEnabled="true" scheme="https" secure="true"
+keystoreFile="/usr/local/tomcat/keystore" keystorePass="123456" clientAuth="false" sslProtocol="TLS" />
+//备注，默认这段Connector被注释掉了，打开注释，添加密钥信息即可
+3）重启Tomcat服务器
+[root@web1 ~]# /usr/local/tomcat/bin/shutdown.sh
+[root@web1 ~]# /usr/local/tomcat/bin/startup.sh
+
+
+
+
+
+
+
+
+
+
+
+
+

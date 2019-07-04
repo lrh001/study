@@ -1,0 +1,47 @@
+1.Ceph存储创建镜像
+rbd create vm1-image --image-feature  layering --size 10G
+
+2.客户端环境部署
+客户端需要安装ceph-common软件包，拷贝配置文件（否则不知道集群在哪），
+拷贝连接密钥（否则无连接权限）。
+
+[root@room9pc01 ~]# yum -y  install ceph-common
+[root@room9pc01 ~]# scp 192.168.4.11:/etc/ceph/ceph.conf  /etc/ceph/
+[root@room9pc01 ~]# scp 192.168.4.11:/etc/ceph/ceph.client.admin.keyring \
+/etc/ceph/
+
+3.创建一台KVM虚拟机（不需要安装系统）
+
+4.使用XML配置文件创建secret
+[root@room9pc01 ~]# vim secret.xml            //新建临时文件，内容如下 
+<secret ephemeral='no' private='no'>
+        <usage type='ceph'>
+                <name>client.admin secret</name>
+        </usage>
+</secret>
+#使用XML配置文件创建secret
+
+[root@room9pc01 ~]# virsh secret-define --file secret.xml
+733f0fd1-e3d6-4c25-a69f-6681fc19802b       
+//随机的UUID，这个UUID对应的有账户信息
+
+设置secret，添加账户的密钥
+[root@room9pc01] virsh secret-set-value \
+--secret 733f0fd1-e3d6-4c25-a69f-6681fc19802b \
+--base64 AQBTsdRapUxBKRAANXtteNUyoEmQHveb75bISg
+//这里secret后面是之前创建的secret的UUID
+//base64后面是client.admin账户的密码
+//现在secret中既有账户信息又有密钥信息
+
+[root@room9pc01] virsh edit vm1           //vm1为虚拟机名称
+<disk type='network' device='disk'>
+      <driver name='qemu' type='raw'/>
+      <auth username='admin'> 
+      <secret type='ceph' uuid='733f0fd1-e3d6-4c25-a69f-6681fc19802b'/>
+      </auth>
+      <source protocol='rbd' name='rbd/vm1-image'>  <host name='192.168.4.11' port='6789'/>  </source>
+    <target dev='vda' bus='ide'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
+    </disk>
+
+

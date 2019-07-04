@@ -1,0 +1,36 @@
+vim /etc/mha/app1.cnf 
+
+[server default]
+manager_workdir=/etc/mha  ##工作目录
+manager_log=/etc/mha/manager.log　##日志文件
+master_ip_failover_script=/etc/mha/master_ip_failover　##故障切换脚本
+
+ssh_user=root　##ssh免密登录账号　
+ssh_port=22　　##ssh免密登录端口
+
+repl_user=repluser　##从库连接主库的账号
+repl_password=123456　##从库连接主库的密码
+
+user=root　　##mha监控数据库的登录账号
+password=123456  ##mha监控数据库的登录密码
+
+[server1]
+hostname=mysql51　##域名或者主机ip
+candidate_master=1　##代表参与主库竞争 
+
+[server2] 
+hostname=mysql52  ##
+candidate_master=1   ##
+
+[server3]
+hostname=mysql53  ##
+candidate_master=1  ##
+
+[server4]
+hostname=mysql54 ##
+no_master=1  ##不参与主库竞争
+
+[server5]
+hostname=mysql55 ##
+no_master=1  ##
+

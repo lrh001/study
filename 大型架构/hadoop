@@ -1,0 +1,253 @@
+大数据运维
+运维+大数据软件的管理
+
+互联网==>移动互联网==>人工智能
+
+大数据:是指各种各样类型的数据中,快速获得有价值的信息
+
+hadoop
+	分析和处理还来那个数据的软件平台
+优点:高可靠性 高扩展性 高效性 高容错性 低成本
+
+
+环境:
+    1.所有机器的都要能Ping通各自的主机名
+   2.namenode主机需要能免密登录所有主机,包括自己,ssh时的警告需要关掉
+    
+hadoop的namenode需要修改的配置文件
+
+vim hadoop-env.sh
+...
+export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.131-11.b12.el7.x86_64/jre"
+export HADOOP_CONF_DIR="/usr/local/hadoop/etc/hadoop"
+...
+#######################################################
+
+vim core-site.xml
+...
+<configuration>
+  <property>
+    <name>fs.defaultFS</name>
+    <value>hdfs://nn01:9000</value>
+  </property>
+  <property>
+    <name>hadoop.tmp.dir</name>
+    <value>/var/hadoop</value>
+  </property>
+</configuration>
+#####################################################
+
+vim hdfs-site.xml
+...
+<configuration>
+  <property>
+    <name>dfs.namenode.http-address</name>
+    <value>nn01:50070</value>
+  </property>
+  <property>
+    <name>dfs.namenode.secondary.http-address</name>
+    <value>nn01:50090</value>
+  </property>
+  <property>
+    <name>dfs.replication</name>
+    <value>2</value>
+  </property>
+
+</configuration>
+...
+#####################################################
+
+vim slaves  ###这个文件填所有datanode主机的主机名
+nn02
+nn03
+nn04
+
+
+####################给其他机器配置##############
+所有机器创建/var/hadoop文件夹
+ansible any -m shell -a "mkdir /var/hadoop"
+
+将namenode主机的hadoop同步给所有datanode主机
+rsync -aSH --delete /usr/local/hadoop/ nn02:/usr/local/hadoop/
+rsync -aSH --delete /usr/local/hadoop/ nn03:/usr/local/hadoop/
+rsync -aSH --delete /usr/local/hadoop/ nn04:/usr/local/hadoop/
+
+namenode主机上格式化文件系统
+/usr/local/hadoop/bin/hdfs namenode -format
+
+启动hadoop集群
+/usr/local/hadoop/sbin/start-dfs.sh
+
+验证角色
+ansible datanode -m shell -a "jps"
+
+验证集群
+/usr/local/hadoop/bin/hdfs dfsadmin -report
+
+###############namenode上配置resourcemanager和nodemanager
+cp mapred-site.xml.template mapred-site.xml
+vim mapred-site.xml
+<configuration>
+  <property>
+    <name>mapreduce.framework.name</name>
+    <value>yarn</value>
+  </property>
+</configuration>
+
+<configuration>
+
+
+vim yarn-site.xml
+<!-- Site specific YARN configuration properties -->
+  <property>
+    <name>yarn.resourcemanager.hostname</name>
+    <value>nn01</value> 
+  </property>
+  <property>
+    <name>yarn.nodemanager.aux-services</name>
+    <value>mapreduce_shuffle</value> 
+  </property>
+</configuration>
+
+
+#################################################################
+将nn01的配置文件同步给datanode的三台机器
+rsync -aSH --delete /usr/local/hadoop/etc/hadoop/ nn02:/usr/local/hadoop/etc/hadoop/
+rsync -aSH --delete /usr/local/hadoop/etc/hadoop/ nn03:/usr/local/hadoop/etc/hadoop/
+rsync -aSH --delete /usr/local/hadoop/etc/hadoop/ nn04:/usr/local/hadoop/etc/hadoop/
+
+启动yarn
+/usr/local/hadoop/sbin/start-yarn.sh
+
+启动hadoop集群
+/usr/local/hadoop/sbin/start-dfs.sh
+
+验证
+ansible datanode -m shell -a "jps"
+/usr/local/hadoop/bin/yarn node -list
+
+
+
+web页面浏览
+192.168.1.40:50070 namenode
+192.168.1.40:50090 secondarynamenode
+192.168.1.40:8088 resourcemanager
+192.168.1.41:50075 datanode
+192.168.1.41:8042 nodemanager
+
+###################################################################
+词频统计
+
+./bin/hadoop fs -ls /          ##查看集群文件系统的根,没有内容
+./bin/hadoop -mkdir /aaa       ##在集群文件系统下创建aaa目录
+./bin/hadoop fs -put *.txt /abc ##上传*.txt到集群文件系统的abc目录下
+./bin/hadoop fs -get  /aaa     ##下载集群文件系统的aaa目录
+./bin/hadoop jar share/hadoop/mapreduce/hadoop-mapreduce-examples-2.7.6.jar wordcount /abc /result
+##统计集群文件系统的/abc目录下的词频数,统计结果放在集群文件系统的result目录下
+
+
+#####################增加datanode节点
+1.配置/etc/hosts文件
+2.安装java-1.8.0-openjdk-devel
+3./usr/local/hadoop/etc/hadoop/slaves中添加新增节点的主机名(格式:一行一个主机名)
+4.将namenode上的hadoop文件同步到新增节点主机
+5.启动datanode
+/usr/local/hadoop/sbin/hadoop-daemon.sh start datanode
+
+6.设置同步带宽(防止造成网络堵塞)
+/usr/local/hadoop/bin/hdfs dfsadmin -setBalancerBandwidth 60000000
+
+7.开始同步数据
+/usr/local/hadoop/sbin/start-balancer.sh
+
+#####################删除datanode节点,下面的操作在namenode主机上操作###########
+
+1.修改配置文件,该文件是指定需要删除节点的存放路径
+vim /usr/local/hadoop/etc/hadoop/hdfs-site.xml        
+...
+<property>                                      
+    <name>dfs.hosts.exclude</name>
+    <value>/usr/local/hadoop/etc/hadoop/exclude</value>
+</property>
+
+2.将需要删除的节点主机名添加到/usr/local/hadoop/etc/hadoop/exclude这个文件中
+
+3.将需要删除节点的数据导出到其他正常主机
+/usr/local/hadoop/bin/hdfs dfsadmin -refreshNodes
+
+4.数据转移完停止datanode(!!!注意一定要等数据同步完才能执行此操作!!!)
+
+/usr/local/bin/hdfs dfsadmin -report通过该命令查看是否转移完
+/usr/local/hadoop/sbin/hadoop-daemon.sh stop datanode
+
+####################nfsgw节点配置############
+
+1.nfsgw节点配置/etc/hosts文件
+
+2.nfsgw节点安装java-1.8.0-openjdk-devel
+
+3.namenode节点和nfsgw节点都需要创建一个代理用户(这2个用户的UID和GID和名字都要一致)
+
+4.在namenode节点上停止所有服务
+/usr/local/hadoop/sbin/stop-all.sh
+
+5.清空/usr/local/hadoop/etc/hadoop/exclude里面的主机名
+
+6.修改配置文件,添加下面内容,定义代理用户组和用户
+vim /usr/local/hadoop/etc/hadoop/core-site.xml
+ <property>
+    <name>hadoop.proxyuser.nfsuser.groups</name>
+    <value>*</value>
+  </property>
+  <property>
+    <name>hadoop.proxyuser.nfsuser.hosts</name>
+    <value>*</value>
+  </property>
+
+7.将namenode节点的hadoop同步到nfsgw节点
+
+8.添加下面配置,定义访问权限和转储目录
+
+vim etc/hadoop/hdfs-site.xml
+  <property>
+    <name>nfs.exports.allowed.hosts</name>
+    <value>* rw</value>
+  </property>
+  <property>
+    <name>nfs.dump.dir</name>
+    <value>/var/nfstmp</value>
+  </property>
+
+9.nfsgw节点创建转储目录,并给他赋予代理用户nfsuser读写权限
+mkdir /var/nfstmp
+chown nfsuser.nfsuser /var/nfstmp
+setfacl -m u:nfsuser:rwx /usr/local/hadoop/logs/
+
+10.启动portmap服务(!!!注意:只能用root用户启动!!!)
+/usr/local/hadoop/sbin/hadoop-daemon.sh --script /usr/local/hadoop/bin/hdfs start portmap
+
+11.使用代理用户nfsuser启动nfs3服务(!!!只能用代理用户启动!!!)
+su -l nfsuser
+/usr/local/hadoop/sbin/hadoop-daemon.sh --script /usr/local/hadoop/bin/hdfs start nfs3
+
+12.客户端挂载
+mount -t nfs -o vers=3,proto=tcp,nolock,noatime,sync 192.168.1.45:/ /mnt/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

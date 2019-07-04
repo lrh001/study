@@ -1,0 +1,36 @@
+多表查询
+1.复制表：备份表，快速建表
+create table db4.user2 select * from userdb.user;
+＃＃＃复制整张表（索引不会复制）
+
+create table db4.user3 select * from userdb.user where 1 > 2;
+###＃复制表的结构（索引不会复制）
+
+select * from t1,t2;
+＃显示的行数是t1和t2的行数之积（笛卡尔积）
+
+
+#########################################
+2.where子查询
+将内层查询的结果作为外层查询的条件
+select name,uid from userdb.user where uid > (select avg(uid) from userdb.user);
+
+
+#########################################
+3.左连接查询　　
+查询条件成立时，以左边的表为主显示查询结果
+left join .... on ...
+
+create table t3 select name,uid,shell,password from userdb.user limit 6;
+create table t4 select name,uid,shell,password from userdb.user limit 8;
+
+select * from t3 left join t4 on t3.name=t4.name and t3.uid=t4.uid;
+注意：数据少的表放在左边
+
+#########################################################################
+4.右连接查询
+查询条件成立时，以右边的表为主显示查询结果
+right join ... on ...
+
+select * from t3 right join t4 on t3.name=t4.name and t3.uid=t4.uid;
+注意：数据少的表放在左边

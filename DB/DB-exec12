@@ -1,0 +1,26 @@
+1.阐述redis集群的工作原理
+
+搭建好集群后,往redis中存入数据会被随机存入到不同的主机,同时会备份到相应的备用服务器中
+若master宕机,相应的slave主机会自动变为master提供服务
+取出数据时,向集群发送一个redis请求,即可得到对应的响应数据,降低了访问压力,达到了高并发的目的
+
+
+2.调整redis配置文件,每一行是什么意思
+
+bind IP地址 只写物理接口IP地址
+daemonize yes 守护进程方式运行
+port xxxx 端口号不要使用默认的6379
+cluster-enabled yes 启用集群
+cluster-config-file nodes-xxxx.conf 指定集群信息文件
+cluster-node-timeout 5000 请求超时5秒
+
+3.测试集群的命令
+redis-cli -c -h IP地址 -p 端口 
+
+
+4.如何查看集群主机信息
+
+cluster info 查看集群信息
+cluster ndoes 查看集群主机节点信息
+
+

@@ -1,0 +1,131 @@
+数据完全备份与恢复
+
+备份方式
+	物理备份：cp,tar....
+　　　　将/var/lib/mysql目录拷贝
+　
+	逻辑备份：使用备份命令
+
+
+备份策略
+	完全备份：备份所有数据
+	增量备份：备份上次备份后，所有新产生的数据
+	差异备份：备份完全备份后，所有新产生的数据
+
+完全＋差异
+
+完全＋增量
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+备份命令用法：
+mysqldump -uroot -p密码 库名 > 备份目录/备份文件
+
+mysqldump -uroot -p123456 -A > /root/dbbackup/full.sql
+##备份所有数据
+
+mysqldump -uroot -p123456 db4 > /root/dbbackup/db4_full.sql
+＃＃备份db4库
+
+mysqldump -uroot -p123456 db4 t2 > /root/dbbackup/db4_t2_full.sql
+＃＃备份db4数据库中的t2表
+
+mysqldump -uroot -p123456 -B db4 mysql > /root/dbbackup/twodb.sql
+＃＃备份db4和mysql这２个库
+
+恢复命令用法：
+	mysql -uroot -p密码 库名 < 路径/xxx.sql
+注意：当备份的sql文件中有创建库的命令时，可以不用指定库名
+　　　例如：多个库备份在一个sql文件中时，或整个数据库备份时
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+实时增量备份/恢复
+启用mysql服务的binlog日志文件实现的
+
+binlog日志概述
+二进制日志
+记录数据更改的所有操作
+即能够记录除查询之外的sql命令：select ,show,desc
+
+启用mysql服务的binlog日志文件
+vim /etc/my.cnf
+[mysqld]
+...
+server_id=50 ##该值一般是主机ip的主机位
+log-bin=/logdir/lrh 
+##指定日志文件存放的位置为/logdir，mysql对该目录要有写权限，日志文件的名字是以lrh开头的文件
+##若不赋值，默认存放位置是/var/lib/mysql，日志文件的名字是以服务器主机名开头的文件
+##当日志文件大于500M的时候会重新创建一个同样格式的日志文件
+
+生成新的日志的方法：
+	重启服务
+	执行SQL命令flush logs;
+	mysql -uroot -p123456 -e "flush logs"
+	mysqldump -uroot -p123456 --flush-logs db4 > /root/dbbackup/a.sql
+
+查看日志当前记录的格式
+show variables like "binlog_format";
+三种日志格式：
+	statement：每一条修改数据的sql命令都会记录在binlog日志中
+	row：不记录sql语句上下文相关信息，仅保存哪条纪录被修改
+	mixed：是以上２种格式的混合使用
+
+修改日志记录格式
+	vim /etc/my.cnf
+         ...
+         [mysqld]
+         binlog_format=mixed
+	...
+
+删除日志方法：
+	purge master logs to "lrh.000003";
+	##删除lrh.000003之前的日志文件
+	
+	reset master;
+	＃＃删除所有日志文件，重新创建标号为１的日志文件
+
+查看日志文件的内容
+mysqlbinlog 目录名/文件名
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+binlog日志如何区分记录的多条sql命令
+1.偏移量
+--start-position=数字
+－-stop-position=数字
+
+2.时间点
+--start-datetime="yyyy-mm-dd hh:mm:ss"
+--stop-datetime="yyyy-mm-dd hh:mm:ss"
+
+
+使用日志恢复数据命令格式
+mysqlbinlog [选项] 路径/日志文件名 | mysql -uroot -p密码
+
+mysqlbinlog --start-position=数字 日志文件名 | mysql -uroot -p123456
+＃＃恢复从指定位置到该文件最后的数据
+
+mysqlbinlog --stop-position=数字 日志文件名 | mysql -uroot -p123456
+＃＃恢复从该文件开始到指定的位置的数据
+
+mysqlbinlog --start-position=数字  --stop-position=数字 日志文件名 | mysql -uroot -p123456
+＃＃恢复从指定位置到指定位置的数据
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+mysqldump：需要锁表，写锁，客户端无法访问
+
+binlog： 文件太大时，不好找
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,96 @@
+vim /etc/hosts
+[web]  ##定义主机组
+web[1:2]
+
+[db]
+db[1:2]
+
+[db:vars] ##定义主机组的公共变量
+ansible_ssh_port=222  ###ssh端口设置为222
+
+[other]
+cache
+
+[app:children] ##将多个主机组整合为一个组
+web
+db
+
+ansible命令格式
+ansible 主机名名称或者主机集合 -m 模块名称 模块参数
+ansible web --list-hosts
+
+ansible all --list-hosts
+##列出所有主机
+
+ansible all -m ping -k
+##检测所有主机
+
+ansible部署key到所有主机
+1.ansible主机生成公钥
+ssh-keygen -t rsa -N '' -b 1024
+
+2.将公钥文件传递给所有主机
+ansible all -m authorized_key -a "user=root exclusive=true manage_dir=true key='$(< /root/.ssh/id_rsa.pub)'" -k
+##user=root 执行命令的用户
+##exclusive=true 若该主机已有其他主机公钥,则将新的公钥文件追加在后面
+##manage_dir=true 若该主机没有公钥的目录则自行创建
+##key='$(< /root/.ssh/id_rsa.pub)' 将/root/.ssh/id_rsa.pub文件中的数据赋值给key
+
+command 默认,不能用 | < > &
+shell 万能
+raw  不支持chdir
+
+===============================================
+script
+
+ansible web -m script -a '/root/useradd.sh'
+##web组的主机都执行useradd.sh脚本
+==================================================
+copy
+
+ansible all -m copy -a 'src=/root/useradd.sh dest=/root/'
+##将ansible主机的/root/useradd.sh文件拷贝到所有主机的/root/目录下
+
+
+============================================================
+lineinfile
+	path 要修改的文件绝对路径
+	regexp 正则表达式,匹配要修改的行
+	line 修改后的样子
+replace
+	path 要修改的文件绝对路径
+	regexp 正则表达式,匹配要修改的部分
+	replace 修改后的样子
+
+ansible db -m lineinfile -a 'path=/etc/resolv.conf regexp="^search" line="search tedu.cn"'
+##将db组的主机的/etc/resolv.conf中以search开头的行替换为search tedu.cn
+
+ansible db -m replace -a 'path=/etc/resolv.conf regexp="\.cn" replace=".com"'
+##将db组的主机的/etc/resolv.conf中的.cn替换成.com
+============================================================
+
+yum
+	name 名字
+	state 动作 installed removed
+
+
+=============================================================
+service
+	name 名字
+	state 动作 started stopped restarted
+	enabled (yes|no)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

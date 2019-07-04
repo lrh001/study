@@ -1,0 +1,25 @@
+1.简述备份策略的类型
+完全备份：备份所有数据
+差异备份：备份自完全备份后所有产生的数据
+增量备份：备份前一次备份后产生的数据
+
+2.如何开启bonlog日志，并设置日志的文件格式
+vim /etc/my.cnf
+.....
+[mysql]
+server_id=数字
+log-bin=/logdir/lrh
+binlog_format="mixed"
+
+
+3.如何使用innobackupex备份与恢复
+
+备份数据
+innobackupex --user root -p密码 -A /备份目录 --no-timestamp
+
+恢复数据
+rm -rf /var/lib/mysql/*
+innobackupex --copy-back /备份目录
+chown -R mysql:mysql /var/lib/mysql
+systemctl restart mysql
+

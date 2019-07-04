@@ -1,0 +1,38 @@
+部署Varnish缓存服务器
+
+1）编译安装软件(python-docutils默认光盘中没有，需要在lnmp_soft中找)
+[root@proxy ~]# yum -y install gcc readline-devel    //安装软件依赖包
+[root@proxy ~]# yum -y install ncurses-devel         //安装软件依赖包
+[root@proxy ~]# yum -y install pcre-devel            //安装软件依赖包
+[root@proxy ~]# yum -y install \
+python-docutils-0.11-0.2.20130715svn7687.el7.noarch.rpm         //安装软件依赖包
+ [root@proxy ~]# useradd -s /sbin/nologin varnish                //创建账户
+[root@proxy ~]# tar -xf varnish-5.2.1.tar.gz
+[root@proxy ~]# cd varnish-5.2.1
+[root@proxy varnish-5.2.1]# ./configure
+[root@proxy varnish-5.2.1]# make && make install
+
+2）复制启动脚本及配置文件
+[root@proxy varnish-5.2.1]# cp  etc/example.vcl   /usr/local/etc/default.vcl //复制后的文件名可以自定义
+
+3）修改代理配置文件
+[root@proxy ~]# vim  /usr/local/etc/default.vcl
+backend default {
+     .host = "192.168.2.100";
+     .port = "80";
+ }
+
+4）启动服务
+ [root@proxy ~]# varnishd  -f /usr/local/etc/default.vcl
+//varnishd命令的其他选项说明如下：
+//varnishd –s malloc,128M        定义varnish使用内存作为缓存，空间为128M
+//varnishd –s file,/var/lib/varnish_storage.bin,1G 定义varnish使用文件作为缓存
+
+查看varnish日志
+[root@proxy ~]# varnishlog                        //varnish日志
+[root@proxy ~]# varnishncsa                    //访问日志
+
+更新缓存数据，在后台web服务器更新页面内容后，用户访问代理服务器看到的还是之前的数据，说明缓存中的数据过期了需要更新（默认也会自动更新，但非实时更新）。
+[root@proxy ~]# varnishadm  
+varnish> ban req.url ~ .*
+//清空缓存数据，支持正则表达式

@@ -1,0 +1,234 @@
+案例1：部署LNMP环境
+步骤一：安装软件
+1）使用yum安装基础依赖包
+[root@proxy ~]# yum -y install gcc openssl-devel pcre-devel zlib-devel
+
+2）源码安装Nginx（如果前面课程中已经安装Nginx，则忽略这一步）
+[root@proxy ~]# useradd -s /sbin/nologin  nginx
+[root@proxy ~]# tar -xvf nginx-1.12.2.tar.gz
+[root@proxy ~]# cd nginx-1.12.2
+[root@proxy nginx-1.12.2]# ./configure   \
+> --user=nginx   --group=nginx \
+> --with-http_ssl_module
+[root@proxy ~]# make && make install
+.. ..
+
+3）安装MariaDB
+Mariadb在新版RHEL7光盘中包含有该软件，配置yum源后可以直接使用yum安装：
+[root@proxy ~]# yum -y install   mariadb   mariadb-server   mariadb-devel
+
+4）php和php-fpm(该软件包在lnmp_soft中提供)
+[root@proxy ~]# yum -y  install  php   php-mysql
+[root@proxy ~]# yum -y  install php-fpm-5.4.16-42.el7.x86_64.rpm
+
+步骤二：启动服务
+1）启动Nginx服务（如果已经启动nginx，则可以忽略这一步）
+这里需要注意的是，如果服务器上已经启动了其他监听80端口的服务软件（如httpd），则需要先关闭该服务，否则会出现冲突。
+[root@proxy ~]# systemctl stop httpd                //如果该服务存在则关闭该服务
+[root@proxy ~]# /usr/local/nginx/sbin/nginx             //启动Nginx服务
+[root@proxy ~]# netstat -utnlp | grep :80
+tcp    0    0 0.0.0.0:80        0.0.0.0:*        LISTEN        32428/nginx   
+
+2）启动MySQL服务
+[root@proxy ~]# systemctl start  mariadb           //启动服务器
+[root@proxy ~]# systemctl status mariadb           //查看服务状态
+[root@proxy ~]# systemctl enable mariadb           //设置开机启动
+
+3）启动PHP-FPM服务
+[root@proxy ~]# systemctl start php-fpm           //启动服务
+[root@proxy ~]# systemctl status php-fpm          //查看服务状态
+[root@proxy ~]# systemctl enable php-fpm          //设置开机启动
+
+4）设置防火墙与SELinux
+[root@proxy ~]# firewall-cmd --set-default-zone=trusted
+[root@proxy ~]# setenforce 0
+
+
+
+
+案例2：构建LNMP平台
+
+步骤一： php-fpm配置文件
+
+
+1）查看php-fpm配置文件（实验中不需要修改该文件）
+[root@proxy etc]# vim /etc/php-fpm.d/www.conf
+[www]
+listen = 127.0.0.1:9000            //PHP端口号
+pm.max_children = 32                //最大进程数量
+pm.start_servers = 15                //最小进程数量
+pm.min_spare_servers = 5            //最少需要几个空闲着的进程
+pm.max_spare_servers = 32            //最多允许几个进程处于空闲状态
+
+
+
+步骤二：修改Nginx配置文件并启动服务
+
+
+[root@proxy ~]# vim /usr/local/nginx/conf/nginx.conf
+location / {
+            root   html;
+            index  index.php  index.html   index.htm;
+                #设置默认首页为index.php，当用户在浏览器地址栏中只写域名或IP，不说访问什么页面时，服务器会把默认首页index.php返回给用户
+        }
+ location  ~  \.php$  {
+            root           html;
+            fastcgi_pass   127.0.0.1:9000;    #将请求转发给本机9000端口，PHP解释器
+            fastcgi_index  index.php;
+            #fastcgi_param   SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+            include        fastcgi.conf;
+        }
+[root@proxy ~]# /usr/local/nginx/sbin/nginx -s reload
+#请先确保nginx是启动状态，否则运行该命令会报错,报错信息如下：
+#[error] open() "/usr/local/nginx/logs/nginx.pid" failed (2: No such file or directory)
+
+LNMP常见问题
+Nginx的默认访问日志文件为/usr/local/nginx/logs/access.log
+Nginx的默认错误日志文件为/usr/local/nginx/logs/error.log
+PHP默认错误日志文件为/var/log/php-fpm/www-error.log
+如果动态网站访问失败，可用参考错误日志，查找错误信息。
+
+
+
+
+案例3：地址重写
+
+步骤一：修改配置文件(访问a.html重定向到b.html)
+
+
+1）修改Nginx服务配置：
+[root@proxy ~]# vim /usr/local/nginx/conf/nginx.conf
+.. ..
+server {
+        listen       80;
+        server_name  localhost;
+location / {
+    root   html;
+index  index.html index.htm;
+rewrite /a.html  /b.html;            
+}
+}
+[root@proxy ~]# echo "BB" > /usr/local/nginx/html/b.html
+2）重新加载配置文件
+[root@proxy ~]# /usr/local/nginx/sbin/nginx  -s  reload
+
+步骤二：访问a.html重定向到b.html（跳转地址栏）
+
+1）修改Nginx服务配置：
+[root@proxy ~]# vim /usr/local/nginx/conf/nginx.conf
+.. ..
+server {
+        listen       80;
+        server_name  localhost;
+location / {
+    root   html;
+    index  index.html index.htm;
+    rewrite /a.html  /b.html  redirect;            
+}
+}
+2）重新加载配置文件
+[root@proxy ~]# /usr/local/nginx/sbin/nginx  -s  reload
+#请先确保nginx是启动状态，否则运行该命令会报错,报错信息如下：
+#[error] open() "/usr/local/nginx/logs/nginx.pid" failed (2: No such file or directory)
+3）客户端测试（仔细观察浏览器地址栏的变化）
+[root@client ~]# firefox  http://192.168.4.5/a.html
+
+
+
+
+步骤三：修改配置文件(访问192.168.4.5的请求重定向至www.tmooc.cn)
+
+1) 修改Nginx服务配置
+[root@proxy ~]# vim /usr/local/nginx/conf/nginx.conf
+.. ..
+server {
+        listen       80;
+        server_name  localhost;
+rewrite ^/ http://www.tmooc.cn/;
+location / {
+    root   html;
+    index  index.html index.htm;
+    #rewrite /a.html  /b.html  redirect;
+}
+}
+2）重新加载配置文件
+[root@proxy ~]# /usr/local/nginx/sbin/nginx  -s  reload
+#请先确保nginx是启动状态，否则运行该命令会报错,报错信息如下：
+#[error] open() "/usr/local/nginx/logs/nginx.pid" failed (2: No such file or directory)
+3）客户端测试（真实机测试，真实机才可以连接tmooc）
+[root@room9pc01 ~]# firefox  http://192.168.4.5
+
+
+
+
+步骤四：修改配置文件(访问192.168.4.5/下面子页面，重定向至www.tmooc.cn/下相同的页面)
+
+1) 修改Nginx服务配置
+[root@proxy ~]# vim /usr/local/nginx/conf/nginx.conf
+.. ..
+server {
+        listen       80;
+        server_name  localhost;
+        rewrite ^/(.*)$ http://www.tmooc.cn/$1;
+location / {
+    root   html;
+    index  index.html index.htm;
+    #rewrite /a.html  /b.html  redirect;
+}
+}
+2）重新加载配置文件
+[root@proxy ~]# /usr/local/nginx/sbin/nginx  -s  reload
+#请先确保nginx是启动状态，否则运行该命令会报错,报错信息如下：
+#[error] open() "/usr/local/nginx/logs/nginx.pid" failed (2: No such file or directory)
+3）客户端测试（真实机测试，真实机才可以连接tmooc）
+[root@room9pc01 ~]# firefox  http://192.168.4.5
+[root@room9pc01 ~]# firefox  http://192.168.4.5/test
+
+
+步骤五：修改配置文件(实现curl和火狐访问相同链接返回的页面不同)
+
+1) 创建网页目录以及对应的页面文件：
+[root@proxy ~]# echo "I am Normal page" > /usr/local/nginx/html/test.html
+[root@proxy ~]# mkdir  -p  /usr/local/nginx/html/firefox/
+[root@proxy ~]# echo "firefox page" > /usr/local/nginx/html/firefox/test.html
+
+2) 修改Nginx服务配置
+[root@proxy ~]# vim /usr/local/nginx/conf/nginx.conf
+.. ..
+server {
+        listen       80;
+        server_name  localhost;
+location / {
+    root   html;
+index  index.html index.htm;
+}
+#这里，~符号代表正则匹配，*符号代表不区分大小写
+if ($http_user_agent ~* firefox) {            //识别客户端firefox浏览器
+rewrite ^(.*)$ /firefox/$1;
+}
+}
+
+3）重新加载配置文件
+[root@proxy ~]# /usr/local/nginx/sbin/nginx  -s  reload
+#请先确保nginx是启动状态，否则运行该命令会报错,报错信息如下：
+#[error] open() "/usr/local/nginx/logs/nginx.pid" failed (2: No such file or directory)
+
+4）客户端测试
+[root@client ~]# firefox  http://192.168.4.5/test.html
+[root@client ~]# curl     http://192.168.4.5/test.html
+
+5）地址重写格式【总结】
+rewrite 旧地址 新地址 [选项];
+last 不再读其他rewrite
+break 不再读其他语句，结束请求
+redirect 临时重定向
+permament 永久重定向
+
+
+
+
+
+
+
+
+

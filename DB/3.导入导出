@@ -1,0 +1,41 @@
+数据库导入导出搜索路径
+
+show variables like "secure_file_priv";
+＃通过该命令可以查看搜索路径
+
+修改搜索路径
+vim /etc/my.cnf
+[mysqld]
+secure_file_pri="/mydir"
+#配置文件中添加这一行
+
+mkdir /mydir
+chown mysql /mudir
+mysql用户需要对/mydir有写权限
+
+修改完重启服务
+systemctl restart mysqld
+
+###############################################
+
+数据导入：
+把系统文件的内容存储到数据库的表里
+命令用法：
+mysql> load data infile ""　into table 表名
+　　　　fields terminated by "分隔符"
+       lines  terminated by "\n";
+例子:
+mysql> load data infile "/mydir/passwd" into user
+       fields terminated by ":"
+       lines terminated by "\n";
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+数据导出：
+把表的记录存到系统文件里
+命令用法：
+SQL查询 into outfile "目录名/文件名";
+SQL查询 into outfile "目录名/文件名" fields terminated by "分隔符";
+SQL查询 into outfile "目录名/文件名" lines terminated by "分隔符";
+例子：
+select * from user where id<=2 into outfile "/mydir/user.txt"；
+

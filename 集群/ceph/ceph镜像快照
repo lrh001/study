@@ -1,0 +1,29 @@
+＃＃＃＃＃＃＃＃＃＃＃＃注意！！！！！＃＃＃＃＃＃＃＃＃
+快照是写时复制：原始数据改变时，将原始数据拷贝
+
+1) 查看镜像快照
+[root@node1 ~]# rbd snap ls image
+查看image镜像快照
+
+2) 创建镜像快照
+[root@node1 ~]# rbd snap create image --snap image-snap1
+给image镜像创建名为image-snap1的快照
+
+３) 还原快照
+[root@node1 ~]# rbd snap rollback image --snap image-snap1
+将image镜像还原为image-snap1快照的状态
+
+4）克隆快照
+[root@node1 ~]#  rbd snap protect image --snap image-snap1
+[root@node1 ~]#  rbd snap rm image --snap image-snap1    //会失败
+[root@node1 ~]# rbd clone \
+image --snap image-snap1 image-clone --image-feature layering
+//使用image的快照image-snap1克隆一个新的image-clone镜像
+
+[root@node1 ~]#  rbd flatten image-clone
+解除克隆镜像与快照的关系，这会将父快照中的数据全部拷贝，比较耗时
+
+删除快照与镜像
+[root@node1 ~]# rbd snap rm image --snap image-snap
+[root@node1 ~]# rbd  list
+[root@node1 ~]# rbd  rm  image

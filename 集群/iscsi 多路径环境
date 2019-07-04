@@ -1,0 +1,56 @@
+配置Multipath多路径
+
+1）安装多路径软件包
+[root@web1 ~]# yum list | grep multipath
+device-mapper-multipath.x86_64         0.4.9-111.el7                       Server
+device-mapper-multipath-libs.i686      0.4.9-111.el7                       Server
+device-mapper-multipath-libs.x86_64    0.4.9-111.el7                       Server
+[root@web1 ~]# yum install -y device-mapper-multipath
+2）生成配置文件
+[root@web1 ~]# cd /usr/share/doc/device-mapper-multipath-0.4.9/
+[root@web1 ~]# ls multipath.conf
+[root@web1 ~]# cp multipath.conf  /etc/multipath.conf
+
+3）获取wwid
+登陆共享存储后，系统多了两块硬盘，这两块硬盘实际上是同一个存储设备。应用服务器使用哪个都可以，但是如果使用sdb时，sdb对应的链路出现故障，它不会自动切换到sda。
+为了能够实现系统自动选择使用哪条链路，需要将这两块磁盘绑定为一个名称。
+通过磁盘的wwid来判定哪些磁盘是相同的。
+取得一块磁盘wwid的方法如下：
+[root@web1 ~]# /usr/lib/udev/scsi_id --whitelisted --device=/dev/sdb 
+360014059e8ba68638854e9093f3ba3a0
+
+4）修改配置文件
+首先声明自动发现多路径：
+[root@web1 ~]# vim /etc/multipath.conf
+defaults {
+        user_friendly_names yes
+find_multipaths yes
+}
+然后在文件的最后加入多路径声明，如果哪个存储设备的wwid和第（3）步获取的wwid一样，那么，为其取一个别名，叫mpatha。
+multipaths {
+    multipath {
+        wwid    "360014059e8ba68638854e9093f3ba3a0"
+        alias   mpatha
+    }
+}
+
+步骤五：启用Multipath多路径，并测试
+
+1）启动Multipath，并设置为开机启动
+[root@web1 ~]# systemctl start multipathd
+[root@web1 ~]# systemctl enable multipathd
+2）检查多路径设备文件
+如果多路长设置成功，那么将在/dev/mapper下面生成名为mpatha的设备文件：
+[root@web1 ~]# ls /dev/mapper/
+control  mpatha  mpatha1
+
+4）验证多路径
+查看多路径，sda和sdb都是running状态。
+[root@web1 ~]# multipath -rr
+reload: mpatha (360014059e8ba68638854e9093f3ba3a0) undef LIO-ORG ,store           
+size=9.3G features='0' hwhandler='0' wp=undef
+|-+- policy='service-time 0' prio=1 status=undef
+| `- 2:0:0:0 sda 8:0  active ready running
+`-+- policy='service-time 0' prio=1 status=undef
+  `- 3:0:0:0 sdb 8:16 active ready running
+

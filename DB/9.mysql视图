@@ -1,0 +1,65 @@
+视图是虚拟表
+
+视图基于基表创建
+
+视图改变基表的数据也随之改变
+基表改变视图也随之改变
+
+create view 视图名称 as SQL查询;
+
+
+create view 视图名称(字段名列表) as SQL查询;
+##该命令创建视图时,自定义的字段名列表的数目要与SQL查询的字段名数目一致,否则无法创建
+
+通过给表定义别名创建视图
+mysql> create view v2 as
+    -> select a.name as aname,a.uid as auid,a.shell as ashell,
+    -> b.name as bname,b.uid as buid,b.homedir as bhomedir,b.password as bpassword
+    -> from t1 a left join t2 b on a.uid=b.uid;
+##t1,t2为表名,a和b分别是他们的别名
+
+create or replace view 视图名称 as SQL查询;
+##创建视图时若视图已存在,会替换已有的视图
+
+show table status where comment="view" and name="v2"\G;
+##查看v2表是否是视图
+
+=============================================================
+
+algorithm=[merage|undefined|temptable]
+
+merage替换方式(默认方式)
+访问视图时,直接对视图访问
+
+temptable:具体化方式
+每次访问视图时,先执行创建视图时as后面的查询语句,再执行访问视图的命令
+
+=============================================================
+
+local 仅检查当前视图的限制 with local check option 
+cascaded 同时要满足基表的限制(默认) with check option 
+
+create or replace view v11 as select * from user where uid>=3 and uid<=10 with local check option;
+##该方式创建的视图,uid的修改范围在(3-10),超过则无法修改,会报错
+
+
+create or replace view v12 as select * from user where uid<=100;
+create or replace view v13 as select * from v12 where uid>=20 with check option;
+##该方式创建的v13修改数据时需要满足v12的条件和v13的条件
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

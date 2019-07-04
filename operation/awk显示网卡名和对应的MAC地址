@@ -1,0 +1,3 @@
+#显示跟网卡的MAC地址信息
+ip add | awk '/^[0-9]/{print $2;getline;if($1~/link\/ether/){print $2}}'| grep -v "lo"
+

@@ -1,0 +1,37 @@
+kafa:是一个分布式消息系统,消息中间件
+
+优点:解耦,冗余,提高扩展性,缓冲,保证顺序,灵活,削峰填谷,异步通信
+
+kafka角色与集群结构:
+
+producer: 生产者,负责发布消息
+consumer: 消费者,负责读取处理消息
+topic: 消息的类别
+Partition: 每个topic包含一个或多个partition
+broker:kafka集群包好一个或多个服务器
+
+
+
+kafka通过zookeeper管理集群配置,选举leader
+
+安装kafka集群前需要先部署好zookeeper集群,kafka依赖于zookeeper集群
+
+
+环境需要:node1 node2 node3 三台机器
+         需要预先搭建好zookeeper集群
+
+1.安装与配置(一台安装配置好,通过rsync同步给其他机器)
+tar -xf kafka_2.10-0.10.2.1.tgz
+mv kafka_2.10-0.10.2.1 /usr/local/kafka
+
+vim /usr/local/kafka/config/server.properties
+...
+broker.id=22  ##每台机器的ＩＤ不一样
+zookeeper.connect=node1:2181,node2:2181,node3:2181　###zookeeper集群的部分机器地址,一般写3个
+...
+
+
+2.启动服务(每台机器都要启动)  (可以通过ansible软件批量启动)
+/usr/local/kafka/bin/kafka-server-start.sh -daemon /usr/local/kafka/config/server.properties
+
+

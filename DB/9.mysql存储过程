@@ -1,0 +1,286 @@
+show table status where comment="view" and name="v2"\G;
+##查看v2表是否是视图
+
+存储过程:相当于mysql语句组成的脚本
+	在存储过程中可以使用变量,条件判断,流程控制
+
+优点:
+	提高性能
+	可减轻网络负担
+	可以防止对表的直接访问
+	避免重复编写SQL操作
+
+存储过程的基本使用
+创建
+delimiter // ##将结束符改为//
+create procedure db9.p1()  ##创建存储过程
+begin
+	select * from user;
+end
+//
+delimiter ;  ##将结束符改回;
+
+调用
+call db9.p1();
+
+删除
+drop procedure db9.p1;
+
+
+查看
+查看过程的具体代码
+select db,name,type,body from mysql.proc where name="p1" and type="PROCEDURE";
+
+查看有哪些存储过程
+show procedure status\G;
+
+==============================================================
+
+会话变量
+
+show session variables;
+##查看当前会话变量
+
+全局变量
+show global variables;
+select @@hostname
+
+用户变量
+set @a=12;
+select @a;
+
+局部变量:只在存储过程中有效
+delimiter //
+create procedure p2()
+begin
+declare x int;
+declare name char(5) default "tom";
+set x=99;
+select x,name;
+end
+//
+delimiter ;
+
+===============================================================
+
+运算符号及用法示例
++ 加法运算
+-  减法运算
+*  乘法运算
+/  除法运算
+%  取余
+DIV 整除运算(只保留整数部分)
+
+===============================================================
+参数类型
+
+in 传递数据给存储过程处理
+out 接收存储过程的处理数据
+inout 具有前2者的功能
+
+delimiter //
+create procedure p5(in a int,in b int)
+begin
+declare x int;
+declare y int;
+declare z int;
+set x=a;
+set y=b;
+set z=x+y;
+select z;
+end
+//
+delimiter ;
+
+
+call p5(3,4);
+========================
+
+delimiter //
+create procedure p6(out b int)
+begin
+select count(name) into b from db9.user;
+select b;
+end
+//
+delimiter ;
+
+call p6(@k);
+####把结果传递给@k
+
+========================
+
+delimiter //
+create procedure p8(inout x int)
+begin
+select x;
+select count(name) into x from db9.user where shell="/bin/bash";
+select x;
+end
+//
+delimiter ;
+
+call p8(@k);
+####把结果传递给@k
+
+=========================
+
+delimiter //
+create procedure say(in username char(10))
+begin
+select * from db9.user where name=username;
+end
+//
+delimiter ;
+call say("root");
+
+============================================================
+流程控制
+
+while 条件 do
+执行命令;
+end while;
+
+delimiter //
+create procedure display(in num int)
+begin
+declare x int default 1;
+while x <= num do
+select x;
+set x=x+1;
+end while;
+end
+//
+delimiter ;
+
+============================
+死循环
+
+loop
+执行命令
+end loop;
+
+============================
+
+repeat条件式循环,当条件成立时结束循环
+该循环至少执行一次
+
+repeat
+	循环体
+
+	until 条件判断
+end repeat;
+
+
+
+delimiter //
+create procedure display2(in num int)
+begin
+declare x int default 1;
+repeat
+	select x;
+	set x=x+1;
+	until x>num
+end repeat; 
+end
+//
+delimiter ;
+
+===========================
+循环流程控制语句
+
+iterate loab1; 跳过当前循环 
+leave loab1; 结束循环
+
+
+delimiter //
+create procedure c3(in num int)
+begin
+	declare x int default 1;
+	loab1:while x <= num do
+            if x=6 then
+              leave loab1;
+             end if;
+             select x;
+             set x=x+1;
+      end while;
+end
+//
+delimiter ;
+
+
+delimiter //
+create procedure c5(in num int)
+begin
+	declare x int default 1;
+	loab1:while x <= num do
+            if x=6 then
+              set x=x+1;  ###注意:这个位置要先改变值,否则会出现死循环
+              iterate loab1;
+             end if;
+             select x;
+             set x=x+1;
+      end while;
+end
+//
+delimiter ;
+
+
+delimiter //
+create procedure p3(in num int)
+begin
+      if num is null then
+      select * from db9.user limit 1;
+      else
+      select * from db9.user limit num;
+      end if;
+end
+//
+
+delimiter ;
+
+delimiter //
+create procedure t1()
+begin
+declare a int default 1;
+declare b int;
+declare x int;
+declare u int;
+declare k int default 0;
+select count(id) into x from db9.user;
+while a < x do
+ select uid into u from db9.user where id=a;
+ set b=u%2;
+ if  b=0 then
+  select uid,name from db9.user where uid=u;
+   set k=k+1;
+  end if;
+   set a=a+1;
+end while;
+   select k;
+end
+//
+delimiter ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

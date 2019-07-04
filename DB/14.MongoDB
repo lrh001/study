@@ -1,0 +1,196 @@
+MongoDB介于关系型和非关系型之间
+
+mkdir /usr/local/mongodb ##创建存放目录
+
+cd /usr/local/mongodb
+mkdir -p etc log data/db  ##创建配置文件目录,日志文件目录,数据库文件目录
+
+tar -zxvf mongodb-linux-x86_64-rhel70-3.6.3.tgz ##解压
+
+cp -r mongodb-linux-x86_64-rhel70-3.6.3/bin/ /usr/local/mongodb/ ##将解压的软件放到之前创建的目录下
+
+
+配置文件(需要手动创建)
+[root@mysql50 ~]# cat /usr/local/mongodb/etc/mongodb.conf 
+logpath=/usr/local/mongodb/log/mongodb.log  ##指定日志文件
+logappend=true  ##开启日志追加
+dbpath=/usr/local/mongodb/data/db ##数据库目录文件,最后必须是/data/db
+fork=true ##以守护进程运行
+bind_ip=192.168.4.50 ##指定使用服务所使用的IP
+port=27050 ##指定服务使用的端口
+
+/usr/local/mongodb/bin/mongod -f /usr/local/mongodb/etc/mongodb.conf
+##开启服务(命令过长,可以定义别名)
+
+/usr/local/mongodb/bin/mongod -f /usr/local/mongodb/etc/mongodb.conf --shutdown
+##关闭服务(命令过长,可以定义别名)
+
+
+==========================================================
+mongodb基本使用
+
+> show dbs ##查看所有库
+admin   0.000GB ##授权库
+config  0.000GB ##存储分片信息
+local   0.000GB ##存储本机信息
+> 
+
+db ##显示当前所在的库
+db.dropDatabase() ##删除当前所在的库
+use 库名 ##切换库,若该库不存在则延时创建
+show tables ##查看当前库下的集合
+db.集合名.save({key1:"value",key2:"value"}) ##向集合中写入单条数据,集合不存在则创建
+db.集合名.find() ##查看该集合下的所有数据
+db.集合名.findOne() ##查看该集合下的第一条数据
+db.集合名.remove({条件}) ##删除该集合中满足条件的数据
+db.集合名.remove({}) ##删除该集合中的所有数据
+db.集合名.drop() ##删除该集合
+
+==========================================================
+数据类型
+
+string(字符类型)
+
+
+bool(布尔类型)
+只有true和false这2个值
+db.t1.save({name:"jack",card:false})
+
+null(空)
+这个字段没有数据
+
+
+数值
+shell默认使用64位浮点型数值:既可以存整数,也可以存小数
+NumberInt():4字节的整型,可以写小数,但是只存整数部分
+NumberLong():8字节的整型,不能存小数
+db.t1.save({name:"jack",pay:NumberLong(1000)})
+db.t1.save({name:"jack",pay:NumberInt(1000)})
+
+数组arry
+db.t1.save({city:["beijing","shanghai","hongkang"]})
+
+代码
+db.t1.save({code:function(){/* 代码 */}})
+
+日期类型
+db.t2.save({name:"002",day:Date()})
+
+对象类型
+对象ID是一个12字节的字符串,是文档的唯一标识
+db.t2.save({name:"001",num:ObjectId()})
+
+内嵌(文档嵌套文档)
+db.t2.save({name:{class:"nsd1810",age:20}})
+db.t2.save({tarena:{addr:"beijing",tel:"10086",person:"sky"}})
+
+正则表达式
+db.t2.save({name:"001",bds:/^..$/})
+
+=======================================================
+
+#############数据导出:把集合的文档存储到系统文件里##############
+
+./mongoexport --host 192.168.4.50 --port 27050 -d gamedb -c t1 --type=json > /root/mdb/gamedb_t1.json
+##json格式导出
+
+./mongoexport --host 192.168.4.50 --port 27050 -d gamedb -c t1 -f name,pay --type=csv > /root/mdb/gamedb_t1.csv
+
+##csv格式导出需要指定字段名,即-f 后的内容,不加则无法导出
+##-c 指定导出的集合
+##-d 指定导出的库
+##-f 指定导出的字段
+##--type 指定导出的文件格式,json或csv格式
+
+#############数据导入:把系统文件的内容写入到集合里###############
+
+导入是库和集合若不存在,会自行创建
+
+./mongoimport --host 192.168.4.50 --port 27050 -d bbsdb -c user --type=json /root/mdb/gamedb_t1.json
+##json格式导入
+
+./mongoimport --host 192.168.4.50 --port 27050 -d bbsdb2 -c user1 -f na,pa --type=csv  /root/mdb/gamedb_t1.csv
+##csv格式导入(修改字段名),字段名也会作为数据导入
+
+./mongoimport --host 192.168.4.50 --port 27050 -d bbsdb2 -c user --type=csv --headerline /root/mdb/gamedb_t1.csv
+##csv格式导入(去除字段名),字段名不会作为数据导入
+
+./mongoimport --host 192.168.4.50 --port 27050 -d bbsdb2 -c user1 -f na,pa --type=csv --drop /root/mdb/gamedb_t1.csv
+##csv格式导入
+##--drop 删除原来集合中的数据再导入数据,没有加此选项则是追加的导入
+
+================================
+将/etc/passwd文件导入mongodb数据库
+
+sed -i 's/:/,/g' /root/mdb/passwd.csv
+##先将文件改为csv格式
+
+sed -i '1i name,pass,uid,gid,comment,homedir,shell' /root/mdb/passwd.csv
+##第一行添加字段名
+
+./mongoimport --host 192.168.4.50 --port 27050 -d bbsdb2 -c user7 --type=csv --headerline  /root/mdb/passwd.csv
+##导入
+
+================================
+
+
+
+
+###################################################数据备份与恢复###############################
+
+备份
+
+/usr/local/mongodb/bin/mongodump --host 192.168.4.50 --port 27050 -o /mdbak/
+##将所有库备份到/mdbak下
+
+/usr/local/mongodb/bin/mongodump --host 192.168.4.50 --port 27050 -d gamedb -o /mdbak/
+##将gamedb库备份到/mdbak下
+
+/usr/local/mongodb/bin/bsondump /mdbak/gamedb/t2.bson
+##查看备份文件的信息
+
+======================
+
+恢复
+/usr/local/mongodb/bin/mongorestore --host 192.168.4.50 --port 27050 /mdbak
+##完全恢复
+
+/usr/local/mongodb/bin/mongorestore --host 192.168.4.50 --port 27050 -d t -c aa /mdbak/bbsdb2/user7.bson
+##恢复某个集合,可以重新指定库和集合
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

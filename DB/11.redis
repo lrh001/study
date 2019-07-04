@@ -1,0 +1,112 @@
+redis
+分布式存储的内存数据库,支持持久化
+
+
+/etc/init.d/redis_6379 status 查看redis状态
+/etc/init.d/redis_6379 stop 停止redis
+/etc/init.d/redis_6379 start 开启redis
+
+set keyname keyvalue 存储(默认是string类型)
+get keyname 获取
+select 数据库编号(0-15) 切换库
+keys * 打印当前库所有变量
+keys a? 打印以a开头的2个字符的变量
+exists keyname 测试该变量是否存在
+ttl keyname 查看变量生存时间
+type keyname 查看变量类型
+
+
+=======================================
+配置文件修改vim /etc/redis/6379.conf
+port 6350  ##修改端口
+bind 192.168.4.50 127.0.0.1 ##修改监听IP
+requirepass 123456 ## 登录密码设置
+
+redis-cli --help ##查看参数使用
+redis-cli -h 192.168.4.50 -p 6350 -a 123456 ##使用密码登录
+
+redis-cli -h 192.168.4.50 -p 6350 -a 123456 shutdown ##停止服务
+
+修改停止服务的脚本
+vim /etc/init.d/redis_6379
+...
+redis-cli -h 192.168.4.50 -p 6350 -a 123456 shutdown ##停止服务
+...
+
+
+=======================================
+配置php支持redis
+
+yum -y install php
+
+yum -y install autoconf automake ##php-redis-2.2.4.tar.gz的依赖包
+
+yum -y install php-devel-5.4.16-42.el7.x86_64.rp ##php-redis-2.2.4.tar.gz的依赖包
+
+tar -zxvf php-redis-2.2.4.tar.gz
+
+cd phpredis-2.2.4/
+
+which phpize
+
+phpize  ##生成/usr/bin/php-config该文件(需要在解压包的目录下执行)
+
+./configure --with-php-conf=/usr/bin/php-config
+
+make && make install 
+
+ls /usr/lib64/php/modules/ ##查看模块文件
+
+===================================
+配置php加载模块
+vim /etc/php.ini
+728 extension_dir = "/usr/lib64/php/modules/" ##模块路径
+730 extension = "redis.so" ##模块名
+
+systemctl restart php-fpm ##重启服务
+php -m | grep redis ##查看模块是否加载成功
+
+==================================
+
+php连接redis数据库的参考代码
+
+<?php
+$redis = new redis();
+$redis->connect('192.168.4.59',6379);
+$redis->set('name','tom');
+echo $redis->get('name');
+?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,105 @@
+主从结构
+	主从
+	一主多从	
+	主从从
+	主主
+
+mysql> source /root/a.sql 
+##数据库中导入备份的数据
+
+
+主从从
+
+从库配置选项
+log_slave_updates :级联复制，记录从库更新，允许链式复制
+relay_log=文件名 :指定中继日志文件名
+replicate_do_db=mysql :仅复制指定库，可设置多个
+replicate_ignore_db=test : 忽略哪些库，可以多个
+
+主库配置选项
+binlog_do_db=name :设置Master对哪些库记录日志
+binlog_ignore_db :　设置Master对哪些库不记录日志
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+复制模式介绍
+
+异步复制
+	主库执行完一次事务后，立即将结果返给客户端，不关心从库是否已经接收并处理
+
+全同步复制（组同步）
+	主库执行完一次事务，且所有从库都执行了该事务后才返回给客户端
+
+半同步复制
+	主库执行完一次事务后，等待至少一个从库接收到并写到relay log中才返回给客户端
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+主库半步设置
+
+show variables like "have_dynamic_loading";
+##查看是否支持动态加载
+
+show variables like "rpl_semi_sync_master_enabled";
+##查看主库是否有半同步模块，是否开启，有值说明开启，值为OFF表示关闭，值为ON表示开启
+
+mysql > install plugin rpl_semi_sync_master SONAME "semisync_master.so";
+##加载主库半同步模块
+
+mysql > set global rpl_semi_sync_master_enabled="on";
+＃＃开启主库半同步复制
+＃＃这是立即生效的临时设置，重启则失效
+
+vim /etc/my.cnf
+...
+[mysql]
+plugin-load=rpl_semi_sync_master=semisync_master.so
+rpl_semi_sync_master_enabled=1
+...
+##这是永久设置主库开启半同步设置
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+从库半同步设置
+
+show variables like "have_dynamic_loading";
+##查看是否支持动态加载
+
+show variables like "rpl_semi_sync_slave_enabled"
+##查看从库是否有半同步模块，是否开启，有值说明开启，值为OFF表示关闭，值为ON表示开启
+
+mysql > install plugin rpl_semi_sync_slave SONMAE "semisync_slave.so"
+##加载从库半同步模块
+
+mysql > set global rpl_semi_sync_slave_enabled="on";
+＃＃开启从库半同步复制
+＃＃这是立即生效的临时设置，重启则失效
+
+vim /etc/my.cnf
+...
+[mysql]
+plugin-load=rpl_semi_sync_slave=semisync_slave.so
+rpl_semi_sync_slave_enabled=1
+...
+##这是永久设置从库开启半同步设置
+
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+主从库永久设置
+
+vim /etc/my.cnf
+...
+[mysql]
+plugin-load="rpl_semi_sync_master=semisync_master.so;rpl_semi_sync_slave=semisync_slave.so"
+rpl_semi_sync_master_enabled=1
+rpl_semi_sync_slave_enabled=1
+
+
+
+
+
+
+
+
+
+

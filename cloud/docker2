@@ -1,0 +1,51 @@
+创建docker私有仓库
+
+cd /etc/docker/
+vim daemon.json
+ {
+  "insecure-registries" : ["192.168.1.11:5000"]
+ }
+
+systemctl restart docker
+
+docker run -itd -p 5000:5000 registry:latest
+
+curl 192.168.1.11:5000/v2/
+
+
+docker tag busybox:latest 192.168.1.11:5000/busybox:latest
+##镜像打标记
+docker push 192.168.1.11:5000/busybox
+##将打标记的镜像上传到仓库
+
+curl 192.168.1.11:5000/v2/_catalog
+##查看镜像仓库的镜像名
+
+curl 192.168.1.11:5000/v2/myos/tags/list
+##查看所有镜像的标记
+
+
+客户端
+vim /etc/docker/daemon.json
+ {
+  "insecure-registries" : ["192.168.1.11:5000"]
+ }
+
+systemctl restart docker
+
+docker run -itd 192.168.1.11:5000/myos:httpd
+
+
+=================================================
+docker run -itd -v /webroot:/usr/share/nginx/html nginx:latest
+##将docker主机的/webroot挂载到容器的/usr/share/nginx/html目录下
+
+
+docker network create --subnet=10.10.10.0/24 docker1
+##创建交换机docker1
+
+docker run -itd --network=docker1 myos
+##使用docker1交换机启动容器
+
+docker run -itd -p 80:80 myos:httpd
+##将宿主机和容器的80端口绑定,可以直接访问宿主机IP访问容器的httpd服务

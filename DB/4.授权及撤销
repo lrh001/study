@@ -1,0 +1,116 @@
+用户授权：在数据库服务器上添加新的连接用户
+
+默认数据库管理员只有在本机登录时才有授权权限
+
+恢复MySQL管理密码
+1.root身份登录数据库服务器
+2.停止数据库服务，修改数据库配置文件/etc/my.cnf
+systemctl stop mysqld
+
+vim /etc/my.cnf
+[mysqld]
+....
+skip-grant-tables　＃＃跳过密码
+
+3.重启数据库服务，进入数据库，更新mysql.user表中root的密码,刷新权限
+
+systemctl restart mysqld
+
+mysql 进入数据库
+
+update mysql.user set authentication_string=password("123456")
+where user="root" and host="localhost";
+###修改密码
+
+flush privileges; 刷新权限
+
+
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+mysql授权库的基本信息
+
+user表：存储用户的授权权限
+db表：存储授权用户对数据库的访问权限
+tables_priv：存储授权用户对表的访问权限
+columns_priv：存储授权用户对字段的访问权限
+
+show grants for 用户名@"客户端地址";
+##命令查看用户的权限
+
+##################################################################
+
+授权命令
+grant 权限列表... on 库名．表名 to 用户名@"客户端地址" identified by "密码" [with grant option];
+
+客户端地址：
+%：匹配所有主机
+192.168.4.%：匹配指定的一个网段
+192.168.4.51：匹配单个主机
+
+select @@hostname;
+＃＃查看已登录上的数据库的服务器主机名
+
+select user();
+＃＃查看自己使用的什么用户从哪里登录的数据库
+
+show grants;
+＃＃查看自己登录上数据库有什么权限
+
+
+GRANT SELECT, INSERT, UPDATE (uid, name) ON db4.t2 to yaya@'192.168.4.%' with grant option;
+＃＃这里给了授权权限，但是授权是不能成功的，还需添加下面一条权限
+
+grant insert on mysql.user to yaya@"192.168.4.%";
+＃＃对mysql下的表要有插入权限
+
+
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+权限撤销
+revoke grant option on *.* from root@"192.168.4.51";
+＃＃收回授权权限
+
+revoke select,insert,update on *.* from root@"192.168.4.51";
+＃＃收回select,insert,update权限
+
+revoke all on *.* from root@"192.168.4.51";
+＃＃收回所有权限
+
+drop user root@"192.168.4.51"
+＃＃删除授权用户
+
+
+用户修改自己的链接密码
+set password=password("123456");
+
+管理员修改授权用户密码
+set password for yaya@"192.168.4.%"=password("123456");
+
+
+授权可以在本机登录的用户
+grant all on *.* to tom@"localhost" identified by "123456";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

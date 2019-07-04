@@ -1,0 +1,46 @@
+mysql数据读写分离：数据的读操作和写操作分配给不同的服务器
+	select 读 
+	insert update delete　写
+
+减轻主库的访问压力
+增加从库的硬件利用率
+
+
+人肉分离（有程序员写程序实现）
+
+
+部署数据库读写分离服务器
+
+1.配置主从结构
+	51主
+	52从
+
+2.代理服务器配置
+	2.1安装maxscale-2.1.2-1.rhel.7.x86_64软件
+	
+	2.2修改配置文件/etc/maxscale.cnf，详细信息参考maxscale.cnf文档
+			
+3.在主库和从库给代理服务器的账号授权
+
+grant replication slave,replication client on *.* to maxmon@"%" identified by "123456";
+grant select on mysql.* to monscale@"%" identified by "123456";
+		
+4.代理服务器启动服务
+maxscale -f /etc/maxscale.cnf
+##指定的启动的配置文件
+
+5.查看代理服务器的管理信息
+maxadmin -P4016 -uadmin -pmariadb
+＃＃本机默认登录的账号和密码
+		
+6.客户端测试
+grant select,insert on bbsdb.* to student@"%" identified by "123456";
+##在主库授权访问数据库的用户
+
+mysql -h192.168.4.56 -P4006 -ustudent -p123456
+＃＃客户端通过授权用户访问数据库
+		
+mysql　中间件
+	mysql-proxy
+	maxscale
+	mycat

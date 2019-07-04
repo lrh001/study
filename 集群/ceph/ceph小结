@@ -1,0 +1,21 @@
+1.网络，ＹＵＭ，主机名，域名解析，ｓｓｈｄ免密登录，ＮＴＰ时间同步
+
+部署主机：
+    mkdir  /root/ceph-cluster
+    yum -y install ceph-deploy
+    ceph-deploy new node1 node2 node3
+    ceph-deploy install node1 node2 node3
+    ceph-deploy mon create-initial
+创建OSD
+1.准备磁盘分区
+parted  /dev/vdb  mklabel  gpt
+parted  /dev/vdb  mkpart primary  1M  50%
+parted  /dev/vdb  mkpart primary  50%  100%
+日志盘需要修改权限，即所属组和所属主要改为ceph
+2.初始化清空磁盘
+ceph-deploy disk  zap  node1:vdc   node1:vdd
+3.创建OSD存储空间
+ceph-deploy osd create \
+node1:vdc:/dev/vdb1 node1:vdd:/dev/vdb2
+
+

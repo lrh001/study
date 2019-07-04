@@ -1,0 +1,147 @@
+修改表结构
+alter table 表名 执行动作
+add     添加字段	
+modify　修改字段类型　
+change　修改自定名称
+drop　　删除字段　
+rename　修改表名称
+
+alter table school.restrict
+add
+phone varchar(30) not null after name;
+##在name字段后面添加一个phone字段
+
+alter table school.restrict
+add
+addr varchar(30) not null default 'beijing' first;
+##在最前面插入一个addr的字段
+
+
+alter table school.restrict
+modify
+addr varchar(50) default 'shanghai' after name;
+##修改addr字段的字符类型，默认值和字段的位置
+
+alter table school.restrict change name myname varchar(10);
+##修改name字段的字段名和该字段的数据类型
+
+alter table school.restrict drop interest;
+##删除interest字段
+
+alter table school.restrict rename school.rest;
+##修改表名
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+索引的优点：
+通过创建唯一性索引，可以保证数据库表中的每一行数据的唯一性
+可以加快数据的检索速度
+
+缺点：
+当对表中的数据进行增加，删除和修改时，索引也要动态的维护，会降低数据库的写速度
+索引需要占用额外的物理空间
+
+INDEX　　　　　普通索引
+UNIQUE　　　　　唯一索引
+FULLTEXT　　　　全文索引
+PRIMARY KEY　　主键
+FOREIGN KEY　　外键
+
+INDEX 普通索引
+使用说明
+⚫ 一个表中可以有多个 INDEX 字段
+⚫ 字段的值允许有重复,且可以赋 NULL 值
+⚫ 经常把做查询条件的字段设置为 INDEX 字段
+⚫ INDEX 字段的 KEY 标志是 MUL
+
+create table school.info(
+id int(6) not null,
+name varchar(5),
+sex enum('male','female'),
+age int(3) default 1,
+index(id),index(name));
+
+在已有的数据表中创建或删除索引
+create index age on school.info(age);
+
+drop index name on school.info;
+＃＃删除索引
+
+查看索引信息:
+show index from school.info\G;
+
+primary key 主键索引
+注意事项
+⚫ 一个表中只能有一个 primary key 字段
+⚫ 对应的字段值不允许有重复,且不允许赋 NULL 值
+⚫ 如果有多个字段都作为 PRIMARY KEY,称为复合主键,必须一起创建。
+⚫ 主键字段的 KEY 标志是 PRI
+⚫ 通常与 AUTO_INCREMENT 连用
+⚫ 经常把表中能够唯一标识记录的字段设置为主键字段[记录编号字段]
+
+create table school.student(
+stu_id char(9),
+name
+char(5),
+primary key(stu_id));
+
+创建主键索引的另一种方式:
+create table school.student2(
+id char(9) primary key,
+name char(5));
+
+对已经存在的数据表创建主键索引
+alter table school.student3 add primary key(id);
+
+删除数据表中的主键索引
+alter table school.student3 drop primary key;
+
+创建复合主键索引(姓名和单位,不能重复,但是单独的姓名或单位可以重复)
+create table school.book(
+姓名 char(20),
+单位 char(20),
+技能 int(100),
+primary key(姓名,单位));
+
+自动添加属性(可以自动将数据自动加 1)
+mysql> create table school.demo(
+id int(100) auto_increment primary key,
+name char(10));
+
+提示:当同时有自增长和主键时,一定要通过 alter 将自增长删除后才可以删除主键,无法直接删除主键。
+
+
+
+foreign key 外键
+一个作者信息表
+一个图书信息表
+要求图书表中的图书作者必须是作者表中的作者。
+什么是外键?
+让当前表字段的值在另一个表中某个字段值的范围内选择。
+使用外键的条件:
+表存储引擎必须是 innodb(默认就是)
+字段类型必须一致
+被参照字段必须是索引类型中的一种(primary key)
+创建外键的语法:
+foreign key(表 A 的字段名称)
+references 表 B(字段名称)
+on update cascade #同步更新
+on delete cascade #同步删除
+
+create table press.book(
+书名 char(20),
+作者 char(10),
+foreign key(作者) references press.author(姓名)
+on update cascade on delete cascade);
+#当作者不在 author 表中就报错
+#提示:当作者表中的作者被删除后,图书信息表中对应的数据也会被删除。
+
+删除外键,需要先查看外键的名称:
+show create table press.book\G;
+alter table press.book drop foreign key book_ibfk_1;
+
+在现有的数据表中创建外键:
+alter table press.book
+add
+foreign key(作者) references press.author(姓名)
+on update cascade on delete cascade;
+

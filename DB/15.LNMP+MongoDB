@@ -1,0 +1,25 @@
+1.安装提供mongo模块软件包
+tar -zxvf mongo-1.6.16.tgz
+cd mongo-1.6.16/
+phpize
+./configure --with-php-config=/usr/bin/php-config
+make
+make install
+
+2.配置php程序运行时加载模块
+...
+extension_dir = "/usr/lib64/php/modules/"
+extension = "redis.so"
+extension = "mongo.so"
+...
+
+3.编写连接mongodb服务的php脚本
+<?php
+$m = new Mongo("mongodb://192.168.4.50:27050");
+$db = $m->site;
+$c = $db->user1;
+$data=array("name"=>"tom","age"=>"19");
+$c->insert($data);
+echo "data ok"; 
+?>
+

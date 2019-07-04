@@ -1,0 +1,145 @@
+案例1：搭建Nginx服务器
+
+问题
+在IP地址为192.168.4.5的主机上安装部署Nginx服务，并可以将Nginx服务器，要求编译时启用如下功能：
+支持SSL加密功能
+设置Nginx账户及组名称均为nginx
+Nginx服务器升级到更高版本。
+
+1）使用源码包安装nginx软件包
+[root@proxy ~]# yum -y install gcc pcre-devel openssl-devel        //安装依赖包
+[root@proxy ~]# useradd -s /sbin/nologin nginx
+[root@proxy ~]# tar  -xf   nginx-1.10.3.tar.gz
+[root@proxy ~]# cd  nginx-1.10.3
+[root@proxy nginx-1.10.3]# ./configure   \
+> --prefix=/usr/local/nginx   \                //指定安装路径
+> --user=nginx   \                            //指定用户
+> --group=nginx  \                            //指定组
+> --with-http_ssl_module                        //开启SSL加密功能
+  .. ..
+
+2）nginx命令的用法
+[root@proxy ~]# /usr/local/nginx/sbin/nginx                    //启动服务
+[root@proxy ~]# /usr/local/nginx/sbin/nginx -s stop            //关闭服务
+[root@proxy ~]# /usr/local/nginx/sbin/nginx -s reload        //重新加载配置文件
+[root@proxy ~]# /usr/local/nginx/sbin/nginx –V                //查看软件信息
+[root@proxy ~]# ln -s /usr/local/nginx/sbin/nginx /sbin/        //方便后期使用
+
+netstat命令可以查看系统中启动的端口信息，该命令常用选项如下：
+-a显示所有端口的信息
+-n以数字格式显示端口号
+-t显示TCP连接的端口
+-u显示UDP连接的端口
+-l显示服务正在监听的端口信息，如httpd启动后，会一直监听80端口
+-p显示监听端口的服务名称是什么（也就是程序名称）
+nginx服务默认通过TCP 80端口监听客户端请求：
+
+
+
+升级Nginx服务器
+
+1）编译新版本nginx软件
+[root@proxy ~]# tar  -zxvf   nginx-1.12.2.tar.gz
+[root@proxy ~]# cd nginx-1.12.2
+[root@proxy nginx-1.12.2]# ./configure   \
+> --prefix=/usr/local/nginx   \ 
+> --user=nginx   \ 
+> --group=nginx  \ 
+> --with-http_ssl_module
+[root@proxy nginx-1.12.2]# make            
+2) 备份老的nginx主程序，并使用编译好的新版本nginx替换老版本
+[root@proxy nginx-1.12.2]# mv /usr/local/nginx/sbin/nginx  \
+>/usr/local/nginx/sbin/nginxold
+[root@proxy nginx-1.12.2]# cp objs/nginx  /usr/local/nginx/sbin/         //拷贝新版本
+[root@proxy nginx-1.12.2]# make upgrade                            //升级
+
+
+
+案例2：用户认证
+
+问题
+
+沿用练习一，通过调整Nginx服务端配置，实现以下目标：
+访问Web页面需要进行用户认证
+用户名为：tom，密码为：123456
+
+
+步骤一：修改Nginx配置文件
+
+1）修改/usr/local/nginx/conf/nginx.conf
+[root@proxy ~]# vim /usr/local/nginx/conf/nginx.conf
+.. ..
+server {
+        listen       80;
+        server_name  localhost;
+        auth_basic "Input Password:";                        //认证提示符
+        auth_basic_user_file "/usr/local/nginx/pass";        //认证密码文件
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+  }
+2）生成密码文件，创建用户及密码
+使用htpasswd命令创建账户文件，需要确保系统中已经安装了httpd-tools。
+[root@proxy ~]# yum -y install  httpd-tools
+[root@proxy ~]# htpasswd -c /usr/local/nginx/pass   tom        //创建密码文件
+New password: 
+Re-type new password: 
+Adding password for user tom
+[root@proxy ~]# htpasswd  /usr/local/nginx/pass   jerry      //追加用户，不使用-c选项
+New password: 
+Re-type new password: 
+Adding password for user jerry
+[root@proxy ~]# cat /usr/local/nginx/pass
+3）重启Nginx服务
+[root@proxy ~]# /usr/local/nginx/sbin/nginx -s reload    //重新加载配置文件    
+
+
+案例4：SSL虚拟主机
+问题
+
+沿用练习三，配置基于加密网站的虚拟主机，实现以下目标：
+域名为www.c.com
+该站点通过https访问
+通过私钥、证书对该站点所有数据加密
+
+步骤一：配置SSL虚拟主机
+1）生成私钥与证书
+[root@proxy ~]# cd /usr/local/nginx/conf
+[root@proxy ~]# openssl genrsa > cert.key                            //生成私钥
+[root@proxy ~]# openssl req -new -x509 -key cert.key > cert.pem      //生成证书
+2）修改Nginx配置文件，设置加密网站的虚拟主机
+[root@proxy ~]# vim  /usr/local/nginx/conf/nginx.conf
+… …    
+server {
+        listen       443 ssl;
+        server_name            www.c.com;
+        ssl_certificate      cert.pem;         #这里是证书文件
+        ssl_certificate_key  cert.key;         #这里是私钥文件
+        ssl_session_cache    shared:SSL:1m;
+        ssl_session_timeout  5m;
+        ssl_ciphers  HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers  on;
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+3）重启nginx服务
+[root@proxy ~]# /usr/local/nginx/sbin/nginx -s reload
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

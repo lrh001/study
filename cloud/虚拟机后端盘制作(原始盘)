@@ -1,0 +1,53 @@
+1.安装一个虚拟机
+qemu-img create -f qcow2 model.qcow2 2G
+##创建一个空白盘
+
+通过这个空白盘安装操作系统,网卡选择nat模式的\
+语言选择英文
+分区时只选择一个根分区
+内核检测关闭
+
+2.给虚拟机配置yum源
+
+3.1禁用selinux
+
+3.2卸载防火墙与NetworkManager
+yum -y remove NetworkManager-* firewalld-* python-firewall
+
+3.3导入公钥
+rpm --import 公钥绝对路径
+
+3.4配置网卡
+vim /etc/sysconfig/network-scripts/ifcfg-eth0
+DEVICE="eth0"
+ONBOOT="yes"
+TYPE="Etherent"
+BOOTPROTO="dncp"
+
+3.5禁用空路由
+vim /etc/sysconfig/network
+NOZEROCONF="yes"
+
+3.6配置使用console能连接虚拟机
+vim /etc/default/grub
+GRUB_CMDLINE_LINUX="biosdevname=0 net.ifnames=0 console=ttyS0,115200n8"
+GRUB_DISABLE_LINUX_UUID="true"
+GRUB_ENABLE_LINUX_LABEL="true"
+
+grub2-mkconfig -o /boot/grub2/grub.cfg
+##生成新的配置文件
+
+将/etc/fstab中的UUID换成设备名
+
+3.7安装扩展分区软件
+yum -y install cloud-utils-growpart
+
+3.8安装常用命令软件
+yum -y install net-tools vim-enhanced bridge-utils psmisc
+
+3.9关闭虚拟机后执行信息清理工作
+virt-sysprep -d model
+
+
+
+

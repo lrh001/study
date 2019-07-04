@@ -1,0 +1,87 @@
+openstack主要组件
+Horizon:管理openstack各种服务,基于web的管理接口
+keystone:为其他服务提供认证和授权的集中身份管理服务,也提供了集中的目录服务
+Neutron:用于创建网络,子网,路由器,管理浮动IP地址,可以实现虚拟交换机,虚拟路由器,可用于在项目中创建VPN
+Cinder:为虚拟机管理存储卷的服务,为运行在Nova中的实例提供永久的块存储,可以通过快照进行数据备份
+Nova:节点上用于管理虚拟机的服务,Nova是一个分布式的服务,能够与keystone交互实现认证,与glance交互实现镜像管理,可以水平扩展
+Glance:虚拟机镜像注册角色,允许用户为直接存储拷贝服务器镜像,这些镜像可以用于新建虚拟机的模板
+
+1.配置yum仓库,系统盘的仓库需要开启gpgcheck=1
+三个镜像盘:
+CentOS7-1708
+RHEL7-extars
+RHEL7OSP-10
+
+
+2.配置DNS服务器
+
+3.配置NTP服务器
+vim /etc/chrony.conf
+server ntp1.aliyun.com iburst ##同步阿里云的时间服务器
+allow 0/0        ##允许所有人使用我的时间服务器 
+cmdallow 127.0.0.1    ##控制指令
+
+chronyc sources -v
+##测试NTP时间是否可用,出现*号代表可用
+
+4.给openstack和nova配置静态ip
+需要2块网卡,一块公网,一块内网
+主机名与/etc/hosts里的要一直一致
+需要禁用空路由(见虚拟机后端盘制作)
+
+磁盘扩容
+lsblk  检查磁盘容量
+export LANG=en_US #设置环境语言,如果未设置正确语言,下面的扩容命令执行不成功,报错
+growpart  /dev/vda  1  #扩容块设备
+xfs_growfs  /    #扩容文件系统
+
+5.安装依赖包
+yum install -y qemu-kvm libvirt-client libvirt-daemon libvirt-daemon-driver-qemu python-setuptools 
+
+6.部署openstack
+yum install -y openstack-packstack
+##安装packstack
+
+packstack --gen-answer-file answer.ini  
+##生成配置文件,文件在命令执行的目录下
+
+7.修改应答文件
+vim answer.ini
+42:   CONFIG_SWIFT_INSTALL=n
+75:   CONFIG_NTP_SERVERS=192.168.1.254
+333:  CONFIG_KEYSTONE_ADMIN_PW=a
+840:  CONFIG_NEUTRON_ML2_TYPE_DRIVERS=flat,vxlan
+876:  CONFIG_NEUTRON_ML2_VXLAN_GROUP=239.1.1.5
+910:  CONFIG_NEUTRON_OVS_BRIDGE_MAPPINGS=physnet1:br-ex
+921:  CONFIG_NEUTRON_OVS_BRIDGE_IFACES=br-ex:eth0
+936:  CONFIG_NEUTRON_OVS_TUNNEL_IF=eth1
+1179: CONFIG_PROVISION_DEMO=n
+
+执行应答文件
+packstack --answer-file=answer.ini
+
+8.修改apache配置文件
+vim /etc/httpd/conf.d/15-horizon_vhost.conf
+...
+WSGIApplicationGroup %{GLOBAL} ##添加这一行,否则web页面无法打开
+...
+
+apachectl graceful ##使配置生效
+
+=======================================
+安装 openstack 工具包
+yum install openstack-utils
+
+检查服务状态
+openstack-status 
+
+openstack 命令行认证
+cd /root/
+. keystonerc_admin
+
+openstack 命令行 参数1  参数2  参数3 ... ...
+openstack 子命令
+查看帮助
+openstack help 子命令
+
+

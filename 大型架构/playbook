@@ -1,0 +1,192 @@
+ansible七种武器
+
+1.ansible 命令 用于执行临时性的工作,必须掌握
+
+2.ansible-doc是ansible模块的文档说明,功能和Linux系统man命令类似,必须掌握
+
+3.ansible-console为用户提供交互式工具
+
+4.ansible-galaxy
+
+5.ansible-playbook 工作机制:通过读取先编写好的playbook文件实现批量管理,必须掌握
+
+6.ansible-valt 文件加密
+
+7.ansible-pull适用于大批量机器配置
+
+=======================================================
+JSON
+JSON是JavaScript对象表示法,它是一种基于文本独立于语言的轻量级数据交换格式
+JSON分隔符限于单引号,小括号,中括号,大括号,冒号,逗号
+
+JSON语法规则
+大括号保存对象
+中括号保存数组
+逗号分隔值
+
+键值对和数组可以相互嵌套
+JSON特性:
+	纯文本,人类可读,具有层次结构(值中存在值),可通过JavaScript进行解析
+
+
+======================================================
+YAML简介
+YAML的结构通过空格来表示
+数组- 
+键值对: 
+缩进2个以上的空格组成
+#号表示注释
+注意:符号必须是英文的!!!
+
+======================================================
+Jinja2模板
+
+基本语法
+	表达式在{{  }}内
+	控制语句在{% %}内
+	注释{# #}
+
+=====================================================
+主机与主机之间是并发的,命令是顺序执行的
+
+web组主机安装apache,修改配置文件
+vim httpd.yml
+---
+- hosts: web
+  remote_user: root
+  tasks: 
+    - yum:
+        name: httpd
+        state: installed
+    - lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^Listen 80'
+        line: 'Listen 8080'
+    - lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^#ServerName'
+        line: 'ServerName www.tedu.cn'
+    - copy:
+        src: /root/index.html
+        dest: /var/www/html
+    - shell: apachectl -t
+    - service:
+        name: httpd
+        state: started
+        enabled: yes
+
+变量型创建用户,并设置密码和初次登录需要修改密码
+cat useradd.yml
+---
+- hosts: db
+  remote_user: root
+  vars: 
+    username: "gg"
+  tasks: 
+    - user:
+        name: "{{username}}"
+        password: "{{'aa'|password_hash('sha512')}}"
+    - shell: chage -d 0 "{{username}}"
+
+
+===================================
+ansible 的shell模块错误处理
+|| true 欺骗ansible
+ignore_error: true
+
+
+===================================
+执行某个tags加触发器
+
+cat rehttpd.yml 
+---
+- hosts: web1
+  remote_user: root
+  tasks: 
+    - yum:
+        name: httpd
+        state: installed
+    - lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^Listen'
+        line: 'Listen 80'
+      notify: restart httpd  ##调用触发器
+      tags: httpdconf
+    - lineinfile:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: '^#ServerName'
+        line: 'ServerName www.tedu.cn'
+    - copy:
+        src: /root/index.html
+        dest: /var/www/html
+    - shell: apachectl -t
+    - service:
+        name: httpd
+        state: started
+        enabled: yes
+  handlers:                ##定义触发器 
+    - name: restart httpd
+      service: 
+        name: httpd
+        state: restarted
+================================================
+循环
+vim load.yml
+---
+- hosts: cache
+  remote_user: root
+  tasks: 
+    - user:
+        name: "{{item.name}}"
+        group: "{{item.group}}"
+        password: "{{item.pwd|password_hash('sha512')}}"
+      with_items: 
+        - 
+          name: a1
+          pwd: aa
+          group: users
+        - 
+          name: a2
+          pwd: bb
+          group: wheel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

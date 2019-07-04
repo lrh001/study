@@ -1,0 +1,44 @@
+准备4台机器
+nn01 node1 node2 node3
+
+环境准备
+1.nn01免密登录所有机器,包括自己
+2./etc/hosts文件中定义好所有主机对应的ip
+3.nn01关闭ssh告警
+4.所有机器安装java-1.8.0-openjdk-devel
+
+###########nn01上操作:###########
+
+1.安装配置zookeeper
+tar -xf zookeeper-3.4.10.tar.gz 
+mv zookeeper-3.4.10 /usr/local/zookeeper
+
+cd /usr/local/zookeeper/conf/
+mv zoo_sample.cfg  zoo.cfg
+
+vim zoo.cfg
+...
+server.1=node1:2888:3888
+server.2=node2:2888:3888
+server.3=node3:2888:3888
+server.4=nn01:2888:3888:observer
+
+2.将配置好的zookeeper同步到node1,2,3
+for i in node{1..3}
+do
+rsync -aSH /usr/local/zookeeper $i:/usr/local/ &
+done
+
+##############node1,2,3操作##################
+1.创建/tmp/zookeeper目录
+ssh node1 mkdir /tmp/zookeeper
+ssh node2 mkdir /tmp/zookeeper
+ssh node3 mkdir /tmp/zookeeper
+
+2.创建 myid 文件，id 必须与配置文件里主机名对应的 server.(id) 一致
+ssh node1 'echo 1 >/tmp/zookeeper/myid'
+ssh node2 'echo 2 >/tmp/zookeeper/myid'
+ssh node3 'echo 3 >/tmp/zookeeper/myid'
+
+3.启动服务(只有启动一半以上的机器才能真正启动)
+/usr/local/zookeeper/bin/zkServer.sh start

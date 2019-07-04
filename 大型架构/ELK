@@ -1,0 +1,174 @@
+ELK组件日志系统的运维中,用于解决
+	分布式日志数据集中式查询和管理
+	系统监控,包含系统硬件和应用各个组件的监控
+
+Kibana :从E中展示数据给用户
+Elasitcsearch :日志数据存储与检索
+Logstash :负责收集数据,存储到E
+
+elk集群配置####(可以通过ansible批量配置机器)
+vim /etc/elasticsearch/elasticsearch.yml
+cluster.name: nsd1810
+node.name: es1
+network.host: 0.0.0.0
+discovery.zen.ping.unicast.hosts: ["es1", "es2","es3"]
+
+
+系统名curl
+-A 修改请求 agent
+-X 设置请求方法
+-i 显示返回的信息
+
+PUT:增
+POST:改
+GET:查
+DELETE:删
+
+
+安装插件(既可以网络安装,也可以本地安装)
+cd /usr/share/elasticsearch/bin/
+./plugin install ftp://192.168.1.254/elk-plugin/bigdesk-master.zip
+./plugin install ftp://192.168.1.254/elk-plugin/elasticsearch-head-master.zip
+./plugin install ftp://192.168.1.254/elk-plugin/elasticsearch-kopf-master.zip
+./plugin list  ##查看已安装的插件
+
+curl 192.168.1.13:9200/_cat
+##列出所有能查看的信息
+创建索引(库)
+	分片 number_of_shards
+	复制 number_of_replicas
+
+###命令创建索引###
+curl -XPUT http://192.168.1.13:9200/tedu -d '
+{"settings":
+    {"index": {
+        "number_of_shards": 5,
+        "number_of_replicas": 1
+              }
+  }
+}'
+
+###向索引中插入数据###
+curl -XPUT http://192.168.1.12:9200/tedu/student/2 -d '
+{"姓名": "jerry",
+"年龄": "19",
+"阶段": "2",
+"爱好": "study"
+}
+'
+
+###kibana安装与配置###
+vim /opt/kibana/config/kibana.yml
+server.port: 5601  
+server.host: "0.0.0.0" 
+elasticsearch.url: "http://es1:9200"
+kibana.index: ".kibana"
+kibana.defaultAppId: "discover"
+elasticsearch.pingTimeout: 1500
+elasticsearch.requestTimeout: 30000
+elasticsearch.startupTimeout: 5000
+
+
+###logstash安装与配置###
+yum -y install java-1.8.0-openjdk.x86_64
+yum -y install logstash
+cd /etc/logstash/
+touch logstash.conf
+
+vim /etc/hosts
+192.168.1.10 kibana
+192.168.1.11 es1
+192.168.1.12 es2
+192.168.1.13 es3
+192.168.1.14 es4
+192.168.1.15 es5
+192.168.1.16 logstash
+
+
+
+
+
+echo "tcplog" > /dev/tcp/192.168.1.16/8888
+##通过tcp 8888端口发送数据给目标主机
+
+echo "udplog" > /dev/udp/192.168.1.16/8888
+##通过udp 8888端口发送数据给目标主机
+
+logger -p local0.notice -t TEST GOOD BYE
+##logger命令书写日志
+
+/etc/rsyslog.conf
+##日志服务配置文件
+
+
+cat logstash.conf 
+input{
+  stdin{ codec => "json" }
+  beats{
+    port => 5044   ##监听的端口,该模块用于被收集主机发送数据
+  }
+  file {
+    path => ["/tmp/a.log"]   ##读取文件的绝对路径
+    sincedb_path => "/dev/null"  ##记录当前读取的位置
+    start_position => "beginning" ##从文件的开头读取
+    type => "testlog"
+  }
+  tcp {
+    mode => "server"
+    host => "0.0.0.0"
+    port => "8888"
+    type => "tcplog"
+  }
+  udp {
+    port => "8888"
+    type => "udplog"
+  }
+  syslog {
+    type => "syslog"
+  }
+}
+
+filter{
+  if  [type] == "httplog" {
+  grok {
+    match => { "message" => "%{COMBINEDAPACHELOG}"} ###通过调用正则表达式对数据处理,也可以自己写正则表达式对数据处理
+  }
+}
+}
+
+/opt/logstash/vendor/bundle/jruby/1.9/gems/logstash-patterns-core-2.0.5/patterns/grok-patterns
+##该文件记录了grok可调用的正则表达式
+
+output{
+  stdout{ codec => "rubydebug" }
+  if  [type] == "httplog" {    ##httplog是被收集数据的主机中fielbeat配置文件中定义的类型
+  elasticsearch {
+    hosts => ["es1:9200","es2:9200","es3:9200"] ##将处理过的数据写入到elasticsearch中
+    index => "weblog"  ##库名
+    flush_size => 2000
+    idle_flush_time => 10
+  }  
+  }
+}
+
+apache主机的配置
+yum -y install filebeat
+vim /etc/filebeat/filebeat.yml
+
+paths:
+        - /var/log/httpd/access_log ##本机的http日志文件
+document_type: httplog  ##定义类型名,logstash条件判断会用到
+logstash:
+  hosts: ["192.168.1.16:5044"]  ##指定logstash主机及端口
+
+
+#############################################################################################
+elk整个收集日志的过程
+web主机将日志文件信息通过filebeat发送给logstash主机处理,logstash处理完将数据提交给elasticsearch集群存储,
+kibana从elasticsearch中读取数据,通过图形展示给用户
+#############################################################################################
+elk官网可下载软件和查看各组件的帮助文档
+https://www.elastic.co/
+
+
+

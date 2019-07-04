@@ -1,0 +1,117 @@
+容器技术已经成为应用程序封装和交付的核心技术
+
+容器技术的核心由以下几个内核技术组成:
+
+Cgroup:资源管理
+NameSpace:进程隔离
+SELinux:安全
+
+docker是完整的一套容器管理系统
+
+docker的优点:
+	相比于传统的虚拟化技术,容器更加简介高效
+	传统的虚拟机需要给每个Vm安装操作系统,容器使用的共享公共库和程序
+
+docker缺点:
+	隔离性没有虚拟化强
+	共用Linux内核,安全性有先天缺陷
+
+=======================================================
+docker 命令
+docker search 镜像名
+##搜索镜像
+
+docker pull 镜像名
+##下载镜像
+
+docker images
+##查看已有镜像
+
+docker save 镜像名:镜像标签 > 备份的文件
+##备份镜像
+
+docker load < 备份镜像文件的绝对路径
+##导入备份镜像
+
+docker run -it 镜像名:标签 命令
+##以何种命令启动容器
+##如果没有指定启动命令,就以默认命令启动
+##如果没有指定标签,就使用默认标签latest
+
+=====================================================
+
+docker run -itd 容器名:标签 命令
+## i:交互式
+## t:终端
+## d:后台进程
+
+docker命令支持前一条命令的结果作为后一条命令的参数
+##docker stop $(docker ps -aq)
+##停止所有容器
+
+docker ps 
+## 查看正在运行的容器
+
+docker ps -a
+##查看所有容器(包括未运行的)
+
+docker ps -aq
+##查看所有容器的容器ID
+
+docker start|stop|restart 容器ID
+##启动/停止/重启容器
+
+docker inspect 容器ID
+##查看容器的底层详细信息
+
+docker rm  容器ID
+##删除容器
+
+docker top 容器ID
+##查看容器里运行的进程
+
+docker attach 容器ID
+##进入容器,exit退出时会关闭容器
+
+docker exec -it 容器ID 命令
+##进入容器,exit退出时不会关闭容器
+
+================================================
+
+docker commit 容器ID 镜像名:标签
+##通过容器自定义镜像
+docker commit 496fac96e588 myos:latest
+
+Dockerfile脚本制作镜像
+  229  mkdir aa
+  230  cd aa/
+  231  touch Dockerfile
+  232  ll  Dockerfile 
+  233  vim Dockerfile 
+         FROM centos:latest
+         RUN rm -rf /etc/yum.repos.d/*  ##容器内执行的命令
+	   ADD local.repo /etc/yum.repos.d/local.repo ##向容器内添加文件
+	   RUN yum -y install vim net-tools psmisc tree ##容器内执行的命令
+  234  ls
+  235  cp /etc/yum.repos.d/local.repo  ./
+  238  docker build -t newos:latest .
+
+Dockerfile脚本制作ssh服务镜像
+
+FROM myos:latest
+RUN yum -y install openssh-server initscripts
+RUN sshd-keygen
+RUN echo "aa" | passwd --stdin root
+ENV EnvironmentFile=/etc/sysconfig/sshd
+EXPOSE 22
+CMD ["/usr/sbin/sshd","-D"]
+
+===============================================
+
+
+
+
+
+
+
+

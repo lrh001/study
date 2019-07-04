@@ -1,0 +1,71 @@
+[maxscale]　定义开启的线程数
+threads=auto
+
+
+[server1]
+type=server
+address=192.168.4.51
+port=3306
+protocol=MySQLBackend
+
+[server2]
+type=server
+address=192.168.4.52
+port=3306
+protocol=MySQLBackend
+
+
+[MySQL Monitor] ##定义监控的数据库服务器
+type=monitor
+module=mysqlmon
+servers=server1,server2　＃＃监控server1和server2
+user=maxmon　　　　＃＃链接数据库的用户　
+passwd=123456　　　＃＃连接数据库的密码
+monitor_interval=10000
+
+
+
+#[Read-Only Service]　＃＃定义只读服务器
+#type=service
+#router=readconnroute
+#servers=server1
+#user=myuser
+#passwd=mypwd
+#router_options=slave
+
+
+
+[Read-Write Service]　　＃＃定义读写分离服务
+type=service
+router=readwritesplit
+servers=server1,server2　＃＃读写分离服务在server１，server2之间进行
+user=monscale　　　＃＃查看访问时连接的用户名
+passwd=123456　　　＃＃密码
+max_slave_connections=100%
+
+
+
+[MaxAdmin Service]　＃＃定义管理服务
+type=service
+router=cli
+
+
+
+#[Read-Only Listener]　＃＃定义只读服务端口号
+#type=listener
+#service=Read-Only Service
+#protocol=MySQLClient
+#port=4008
+
+[Read-Write Listener]　＃＃定义读写分离服务的端口号
+type=listener
+service=Read-Write Service　＃＃读写分离服务名
+protocol=MySQLClient
+port=4006
+
+[MaxAdmin Listener]　　＃＃定义管理服务使用的端口号
+type=listener
+service=MaxAdmin Service
+protocol=maxscaled
+socket=default
+port=4016　　＃＃没有指定则默认为4009

@@ -1,0 +1,101 @@
+MHA+一主多从同部结构
+
+MHA：实现高可用
+
+MHA MANAGER（管理节点）
+
+
+MHA Node（数据节点）
+　　运行在mysql服务器上
+
+
+1.1.先安装perl-*依赖包（光盘自带与不自带）
+1.2.安装mha-node包（数据库服务器节点和管理节点）
+1.3.安装mha-manager包（管理节点）
+1.4.部署所有mysql数据库服务企之间可以互相ssh免密登录（使用的是对方的root）
+1.5.部署管理主机可以ssh免密登录所有mysql数据库服务器（使用的是对方的root）
+
+2.1.部署mysql一主多从　主从同步结构
+
+主库配置
+[mysqld]
+
+validate_password_policy=0
+validate_password_length=6
+
+relay_log_purge=off
+
+server_id=51
+log-bin=master51
+binlog_format="mixed"
+
+plugin-load="rpl_semi_sync_master=semisync_master.so;rpl_semi_sync_slave=semisync_slave.so"
+rpl-semi-sync-master-enabled=1
+rpl-semi-sync-slave-enabled=1
+
+备用主库配置
+[mysqld]
+
+validate_password_policy=0
+validate_password_length=6
+
+relay_log_purge=off
+
+server_id=52
+log-bin=master52
+binlog_format="mixed"
+
+plugin-load="rpl_semi_sync_master=semisync_master.so;rpl_semi_sync_slave=semisync_slave.so"
+rpl-semi-sync-master-enabled=1
+rpl-semi-sync-slave-enabled=1
+
+
+从库都要连接主库，数据库中执行下面命令
+change master to
+master_host="192.168.4.51",
+master_user="repluser",
+master_password="123456",
+master_log_file="master51.000001",
+master_log_pos=154;
+
+2.2配置管理主机56
+	创建mha工作目录/etc/mha/
+	创建主配置文件:解压的源码包中有个samples目录，里面有模板配置文件，配置参考＂mha主配置文件＂（放在工作目录下
+　　　  创建故障切换脚本（放在工作目录下）：修改里面的VIP即可，需要给该脚本赋予执行权限
+　　　　当前主库配置VIP:ifconfig eth0:1 192.168.4.100/24
+　　　　在所有数据库服务器添加监控用户：grant all on *.* to root@"%" identified by "123456";
+
+2.3测试配置文件
+masterha_check_ssh --conf=/etc/mha/app1.cnf
+masterha_check_repl --conf=/etc/mha/app1.cnf
+
+2.4启动管理服务并查看状态信息
+masterha_manager --conf=/etc/mha/app1.cnf --remove_dead_master_conf --ignore_last_failover
+masterha_check_status --conf=/etc/mha/app1.cnf
+
+
+3.主库51上授权客户端访问的用户，测试高可用功能
+	停止51上的数据库服务
+	客户端50依然可以连接VIp192.168.4.100访问数据库服务
+	管理主机56的app1.cnf文件主库51的配置已经删除
+	所有从库都自动吧主库master_host字段指向新选举出来的主库IP
+
+4.把宕机的主库修复后添加到集群里
+	启动宕机的服务
+	将宕机重新指定新的主库的从库
+	在管理机器的配置文件里加回宕机机器的配置
+	重新启动管理机器的服务
+
+
+
+
+
+
+
+
+
+
+
+
+
+

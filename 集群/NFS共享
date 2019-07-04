@@ -1,0 +1,29 @@
+案例4：配置并访问NFS共享
+
+将目录/root共享给192.168.2.100，客户机的root用户有权限写入
+将/usr/src目录共享给192.168.2.0/24网段，只开放读取权限
+
+修改/etc/exports文件，添加共享目录设置
+默认情况下，来自NFS客户端的root用户会被自动降权为普通用户，若要保留其root权限，注意应添加no_root_squash控制参数(没有该参数，默认root会被自动降级为普通账户)；另外，限制只读的参数为ro、可读可写为rw，相关配置操作如下所示：
+[root@proxy ~]# vim  /etc/exports
+/root           192.168.2.100(rw,no_root_squash)
+/usr/src        192.168.2.0/24(ro)
+
+启动NFS共享相关服务，确认共享列表
+依次启动rpcbiind、nfs服务：
+[root@proxy ~]# systemctl restart rpcbind  ;  systemctl enable rpcbind
+[root@proxy ~]# systemctl restart nfs ;  systemctl enable nfs
+
+
+使用showmount命令查看本机发布的NFS共享列表：
+[root@proxy ~]# showmount  -e  localhost
+Export list for localhost:
+/usr/src 192.168.2.0/24
+/root    192.168.2.100
+
+
+！！！！ 如果从未授权的客户机访问NFS共享，将会被拒绝。比如从NFS服务器本机尝试访问自己发布的/root共享（只允许192.168.2.100访问），结果如下所示：
+[root@proxy ~]# mkdir  /root5
+[root@proxy ~]# mount  192.168.2.5:/root  /root5    
+mount.nfs: access denied by server while mounting 192.168.2.5:/root
+

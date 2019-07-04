@@ -1,0 +1,37 @@
+案例2：创建PPTP VPN
+
+本案例要求搭建一个PPTP VPN环境，并测试该VPN网络是否能够正常通讯，要求如下:
+使用PPTP协议创建一个支持身份验证的隧道连接
+使用MPPE对数据进行加密
+为客户端分配192.168.3.0/24的地址池
+客户端连接的用户名为jacob，密码为12345
+
+步骤一：部署VPN服务器
+
+1）安装软件包（软件包参考lnmp_soft）
+[root@proxy ~]# yum localinstall pptpd-1.4.0-2.el7.x86_64.rpm
+[root@proxy ~]# rpm -qc pptpd
+/etc/ppp/options.pptpd
+/etc/pptpd.conf
+/etc/sysconfig/pptpd
+
+2)修改配置文件
+[root@proxy ~]# vim /etc/pptpd.conf
+.. ..
+localip 201.1.2.5                                    //服务器本地IP
+remoteip 192.168.3.1-50                            //分配给客户端的IP池
+[root@proxy ~]# vim /etc/ppp/options.pptpd
+require-mppe-128                                    //使用MPPE加密数据
+ms-dns 8.8.8.8                                    //DNS服务器
+[root@proxy ~]# vim /etc/ppp/chap-secrets            //修改账户配置文件
+jacob           *               123456      *
+//用户名    服务器标记    密码    客户端
+[root@proxy ~]# echo "1" > /proc/sys/net/ipv4/ip_forward    //开启路由转发
+
+3）启动服务
+[root@proxy ~]# systemctl start pptpd
+[root@proxy ~]# systemctl enable pptpd
+[root@proxy ~]# firewall-cmd --set-default-zone=trusted
+4）翻墙设置（非必需操作）
+[root@proxy ~]# iptables -t nat -A POSTROUTING -s 192.168.3.0/24 \
+>  -j SNAT --to-source 201.1.2.5

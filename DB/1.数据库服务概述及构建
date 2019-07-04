@@ -1,0 +1,135 @@
+DB 
+数据库：依照某种数据模型进行组织并存放到存储器的数据集合
+
+DBMS:　DataBase Management System 
+数据库管理系统：用来操作和管理数据库的大型服务软件
+
+DBS : DataBase System
+数据库系统：即DB + DBMS,指带有数据库并整合了数据库管理软件的计算机系统
+
+E-R 数据模型
+实体-关系　模型
+
+常见的数据库服务软件
+Oracle :Oracle Database
+        MySQL/MariaDB
+Microsoft:
+        SQL Server
+        Access
+IBM:
+        DB2
+Sybase:
+        Sybase
+加州大学伯克利分校：
+　　　　　PostgreSQL
+＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝＝
+构建MySQL服务器
+
+访问http://dev.mysql.com/downloads/mysql/，找到MySQL Community Server下载页面，平台选择“Red Hat Enterprise Linux 7/ Oracle Linux”，然后选择64位的bundle整合包下载
+
+注意：下载MySQL软件时需要以Oracle网站账户登录，如果没有请根据页面提示先注册一个（免费）
+
+服务器先配置好IP和yum源
+1.环境准备
+关闭防火墙(如果有的话)
+关闭 SELinux(如果有的话)
+如果之前有 mariadb,则需要先卸载,并删除对应的配置与数据:
+systemctl stop mariadb
+rm -rf /etc/my.cnf
+rm -rf /var/lib/mysql/*
+rpm -e --nodeps mariadb mariadb-server mariadb-devel
+
+2.安装部署MySQL
+解压mysql-5.7.17.tar 整合包
+tar -xf mysql-5.7.17.tar
+yum -y install mysql-community*
+
+3.启动服务
+[root@mysql50 ~]# systemctl start mysqld
+提示:第一次启动,需要初始化数据,会比较慢
+[root@mysql50 ~]# systemctl status mysqld
+[root@mysql50 ~]# systemctl enable mysqld
+
+4.配置 MySQL 管理员密码(默认数据库管理员账户为 root)
+第一次启动时,mysql 会自动为 root 账户配置随机密码,我们需要通过日志查看该密码
+[root@mysql50 ~]# grep password /var/log/mysqld.log
+
+2018-12-25T12:43:41.164573Z 1 [Note] A temporary password is generated for root@localhost: cvAd3af8a<j?
+
+[root@mysql50 ~]# mysql -uroot -p'cvAd3af8a<j?'
+mysql> show databases;
+ERROR 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.
+注意:用该密码登录到服务端后,必须马上修改密码,不然会报上面的错误。
+
+set global validate_password_policy=0; //只验证长度
+set global validate_password_length=6; //修改密码长度,默认值是 8 个字符
+alter user user() identified by "123456"; //修改登陆密码
+mysql -h 127.0.0.1 -uroot -p123456
+
+注意事项:
+操作指令不区分大小写(密码和变量除外)
+每条 SQL 语句都以分号;结束
+
+常用的 SQL 命令分类:
+DDL 数据定义语言(create,alter,drop)
+DML 数据操作语言(insert,update,delete)
+DCL 数据控制语言(grant,revoke)
+DTL 数据事务语言(commit,rollback,savepoint)
+
+
+提示:数据库命名规则
+(数字、字母、下划线,不能纯数字;区分大小写;不能使用关键词或特殊符号)
+
+mysql> show databases;#查看数据库
+mysql> use mysql;#切换数据库
+mysql> select database();
+mysql> create database tts character set utf8;#创建数据库,该数据库使用utf8编码
+mysql> drop database tts;#删除数据库
+
+desc school.student;查看school.student的表结构
+
+insert into school.student values('NSD181001','葫芦娃','男',1388888888,'北京');一次插入 1 条数据.
+
+insert into school.student values('NSD181002','蛇精','女',1389999999,'上海'),
+('NSD181003','爷爷','男',1387777777,'长白山');一次插入多条数据(多条数据使用逗号分隔).
+
+mysql> delete from school.student where 学号='NSD181003';#删除表中满足条件的数据
+mysql> delete from school.student;#删除表中所有数据
+
+char(字符数) 固定长度,最大长度 255 字符,不够指定的字符数时自动在右边填补空格,超出指定字符数则无法写入。
+varchar(字符数) 可变长度,根据实际数据大小分配存储空间,超出指定字符数则无法写入。
+text/blob 字符数大于 65535 时使用
+
+datetime 日期时间类型,占 8 个字符
+范围 1000-01-01 00:00:00:000000~9999-12-31 23:59:59.999999
+如果不给该类型的数据赋值,则默认为 NULL
+
+timestamp 日期时间类型,占 4 个字节
+范围 1970-01-01 00:00:00:000000~2038-01-19 03:14:07.999999
+如果不给该类型的数据赋值,则 mysql 自动为其分配当前的系统时间
+
+date 日期类型,占用 4 个字节
+范围 0001-01-01~9999-12-31
+默认使用 4 位数字表示,当只用 2 位数字负值时:
+01~69 自动识别为 2001~2069达内云计算学院
+70~99 自动识别为 1970~1999
+
+year 年份类型,占用 1 个字节
+范围 1901-2155
+
+
+time 时间类型,占用 3 个字节
+范围 HH:MM:SS
+
+枚举类型(选择类型)
+enum(值 1,值 2,值 3...) #单选项
+set(值 1,值 2,值 3...)
+#多选项
+mysql> create table school.tea(
+name char(5),
+gender enum('boy', 'girl'),
+interest set('book','film','music','football'),);
+
+
+
+

@@ -1,0 +1,31 @@
+案例3：编写udev规则
+
+1）查看设备属性
+加载USB设备的同时实时查看设备的相关属性，可以使用monitor指令。
+[root@proxy ~]# udevadm monitor --property //只有加入设备时才会有信息
+
+如果设备已经加载则无法使用monitor查看相关属性。可以使用下面的命令查看设备属性。
+[root@proxy ~]# udevadm info --query=path --name=/dev/sda　　//查看设备路径
+[root@proxy ~]# udevadm info --query=property --path=/block/sda　//查看设备属性
+[root@proxy ~]# udevadm info --query=all --attribute-walk --path=/block/sda　
+
+单独查看某个磁盘分区的属性信息。
+[root@proxy ~]# udevadm info --query=property --path=/block/sdada1
+
+2）编写udev规则文件（实现插拔USB设备时有屏幕提示信息）
+注意：修改规则文件不能照抄，这里的变量都是需要根据实际情况而修改的！！！
+每个设备的属性都有所不同！！！一定要根据前面查询的info信息填写。
+[root@proxy ~]# vim  /etc/udev/rules.d/70-usb.rules
+SUBSYSTEMS=="usb",ATTRS{manufacturer}=="TOSHIBA",ATTR{serial}=="60A44CB4665EEE4133500001",RUN+="/usr/bin/wall udisk plugged in"
+
+5）继续修改规则文件（插拔U盘等于启停服务）
+注意：启动服务的程序systemctl，必须使用绝对路径。
+[root@proxy ~]# /etc/udev/rules.d/70-usb.rules
+ACTION=="add",ENV{ID_VENDOR}=="TOSHIBA",ENV{ID_SERIAL_SHORT}=="60A44CB4665EEE4133500001",RUN+="/usr/bin/systemctl start httpd"
+ACTION=="remove",ENV{ID_VENDOR}=="TOSHIBA",ENV{ID_SERIAL_SHORT}=="60A44CB4665EEE4133500001",RUN+="/usr/bin/systemctl stop httpd" 
+
+udev
+条件,RUN="触发动作"
+条件,SYMLINK="设备别名"
+条件,OWER="拥有者" ,GROUP="组",MODE="777"
+条件,NEME="名称"

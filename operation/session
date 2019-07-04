@@ -1,0 +1,47 @@
+session和cookies
+
+
+client ---------------------------------->server
+  1.发送请求(用户信息)                               查询账户,登录状态写到session文件
+  2.服务器返回页面                                      保存用户的登录状态
+                                                         用UUID作为文件名SID
+  服务器在返回页面数据的同时
+  返回了一个包的头部信息
+  cookies:SID
+
+
+client再次访问服务器
+       浏览器会自动把cookie发送给服务器
+
+                          ----->server[/var/lib/php/session]
+
+client---------proxy
+
+                          ----->server[/var/lib/php/session]
+
+将session的存储路径从本地改为memcached服务器
+[root@web1 ~]# vim  /etc/php-fpm.d/www.conf            //修改该配置文件的两个参数
+//文件的最后2行
+修改前效果如下:
+php_value[session.save_handler] = files
+php_value[session.save_path] = /var/lib/php/session
+//原始文件，默认定义Sessoin会话信息本地计算机（默认在/var/lib/php/session）
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+修改后效果如下:
+php_value[session.save_handler] = memcache
+php_value[session.save_path] = "tcp://192.168.2.5:11211"
+//定义Session信息存储在公共的memcached服务器上，主机参数中为memcache（没有d）
+//通过path参数定义公共的memcached服务器在哪（服务器的IP和端口）
+[root@web1 ~]# systemctl  restart  php-fpm
+
+
+
+
+
+
+
+java[代码]  -----web服务器[tomcat,websphere... ]
+
+php[网页开发]
+
+tomcat软件本身就是java写的一个小程序

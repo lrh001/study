@@ -1,0 +1,173 @@
+增加表记录
+增加一条记录，给所有字段赋值
+insert into 表名 values(字段值);
+
+增加n条记录，给所有字段赋值
+insert into 表名 values
+(字段值)，
+(字段值)，
+(字段值);
+
+增加一条记录，给指定字段赋值
+insert into 表名(字段名) values(字段值);
+
+增加n条记录，给指定字段赋值
+insert into 表名(字段名) values
+(字段值),
+(字段值),
+(字段值);
+
+注意事项
+字段值要与字段类型相匹配
+对于字符类型的字段，要用双或单引号括起来
+依次给所有字段赋值时，字段名可以省略
+只给一部分字段赋值时，必须明确写出对应的字段名称
+
+##################################################
+查询表记录
+select 字段１,字段２,字段n from 表名；
+select 字段１,字段２,字段n from 表名 where 条件表达式;
+
+注意事项
+使用*可匹配所有字段
+指定表名时，可采用　库名．表名　的形式
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+更新表记录
+update 表名 
+set 字段１=字段１值，字段2＝字段2值　．．．．
+
+update 表名 
+set 字段１=字段１值，字段2＝字段2值　．．．．
+where 条件表达式
+
+
+################################################
+删除表记录
+delete from 表名 where 条件表达式;
+删除符合条件的行
+
+delete from 表名;
+删除表里的所有数据
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+匹配
+数值比较
+<,>,=
+<=,>=,!=
+
+字符比较
+＝，!=
+
+匹配空 is null
+select * from user where name is null;
+
+匹配非空　is not null
+select * from user where name is not null;
+
+逻辑匹配（多个条件匹配）
+
+逻辑与 and ：条件都满足
+select * from user where name="root" and uid=0 and gid=0
+
+逻辑或 or　：满足其中的一个条件即可
+select * from user where name="root" or uid=3 or gid=4;
+
+逻辑非 ! 和 not ：取反
+
+################################################
+范围内匹配
+
+在．．．里 in (值列表)
+select * from user where name in ("adm","jack","jerry","tom");
+
+不在．．．里 not in (值列表)
+select * from user where name not in ("adm","jack","jerry","tom");
+
+在．．．之间．．． between 数字1 and 数字２
+select * from user where uid between 10 and 15;
+select * from user where id between 1 and 5;
+
+#####################################################
+高级匹配条件
+模糊查询 like _ % 普通字符
+_表示单个字符
+% 表示0到ｎ个字符
+select name from user where name like "___";
+查询３个字符的name
+
+select name from user where name like "___%";
+查询３个或３个以上的字符的name
+
+select name from user where name like "a%";
+查询a开头的name
+
+select name from user where name like "%a%";
+查询包含a的name
+
+#########################################
+
+正则表达式　. ^ $ [ ] * |
+
+select name from user where name regexp "^a|^r";
+select name from user where name regexp "[0-9]$";
+select name from user where name regexp "^[0-9]";
+
+
+四则运算　＋　－　* / %
+
+select name,uid,uid-1 from user where id <=3;
+将id小于等于３的uid减１显示
+
+update user set uid=uid+1 where id <=3;
+将id小于等于３的uid加１更新
+
+select name,uid,gid,uid+gid sum from user where id <=3;
+
+提高优先级
+select name,uid,gid,(uid+gid)/2 ave from user where id <=3;
+
+###############################################################
+操作查询结果
+聚集函数
+select avg(uid) from user;
+select avg(uid) from user where id < 10;
+select sum(uid) from user;
+select sum(uid) from user where shell != "/bin/bash";
+select min(uid) from user;
+select max(uid) from user;
+select count(name) from user;
+
+
+######################################################
+查询结果排序　order by 
+select name,id from user where uid < 100 order by id desc;
+＃降序排列，不加desc默认是升序排列
+
+查询结果分组　group by 
+
+查询结果过滤　having 条件
+select * from user where shell != "/bin/bash" having name="adm";
+##查看shell不是/bin/bash，name是adm的信息
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+限制查询结果的显示行数　limit
+select * from user limit 3;
+显示查询结果的前３行
+
+select * from user limit 3,5;
+显示查询结果的从第４行开始的５行
+
+
+
+
+
+
+
+
+
+
+

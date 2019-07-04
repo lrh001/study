@@ -1,0 +1,33 @@
+1. 简述当前主流数据库服务软件有哪些？开源且跨平台的数据库软件有哪些？
+当前主流的数据库服务器软件有：Oracle,DB2, SQL SERVER ,MySQL
+其中只有MySQL是既开源又跨平台
+
+2.简述MySQL数据库的服务进程叫什么名字？默认监听端口是多少？默认数据库目录是？
+
+mysqld
+3306
+/var/lib/mysql
+
+3.简述MySQL默认的4个库叫什么名字？哪个库里的数据不占用物理磁盘空间？
+
+information_schema  不占物理磁盘空间
+perfermance_schema
+mysql
+test
+
+4.请列出MySQL常用的数据类型，并写出定义这些数据类型所使用的关键字。
+
+字符类型：char varchar blob text
+数值类型：tinyint smallint int bigint float double
+日期时间类型：year date time datetime timestamp
+枚举类型：enum set
+
+5.简述以下MySQL函数的功能。
+year()　获取指定时间中的年
+date()　获取指定时间中的年月日
+month()　获取指定时间中的月
+day()　　获取指定时间中的日期
+time()　　获取指定时间中的小时分钟秒
+now()　　　获取当前时间（年月日小时分钟秒）
+
+

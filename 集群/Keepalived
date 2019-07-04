@@ -1,0 +1,42 @@
+Keepalived
+实现了高可用集群
+最初是为LVS设计的，专门监控各服务器节点的状态
+后来加入了VRRP功能，防止单点故障
+
+①yum -y install keepalived
+
+②修改配置文件/etc/keepalived/keepalived.conf
+[root@web1 ~]# vim /etc/keepalived/keepalived.conf
+global_defs {
+  notification_email {
+    admin@tarena.com.cn                //设置报警收件人邮箱
+  }
+  notification_email_from ka@localhost    //设置发件人
+  smtp_server 127.0.0.1                //定义邮件服务器
+  smtp_connect_timeout 30
+  router_id  web1                        //设置路由ID号（实验需要修改）
+}
+vrrp_instance VI_1 {
+  state MASTER                         //主服务器为MASTER（备服务器需要修改为BACKUP）
+  interface eth0                    //定义网络接口
+  virtual_router_id 50                //主备服务器VRID号必须一致
+  priority 100                     //服务器优先级,优先级高优先获取VIP（实验需要修改）
+  advert_int 1
+  authentication {
+    auth_type pass
+    auth_pass 1111                       //主备服务器密码必须一致
+  }
+  virtual_ipaddress { 192.168.4.80  }    //谁是主服务器谁获得该VIP（实验需要修改）
+}
+③重启服务
+systemctl restart keepalived
+systemctl enabled keepalived
+
+④配置防火墙和SELinux
+启动keepalived会自动添加一个drop的防火墙规则，需要清空！
+[root@web1 ~]# iptables -F
+[root@web1 ~]# setenforce 0
+[root@web2 ~]# iptables -F
+[root@web1 ~]# setenforce 0
+
+

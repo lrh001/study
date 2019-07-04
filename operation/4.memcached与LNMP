@@ -1,0 +1,39 @@
+案例1：构建memcached服务
+
+本案例要求先快速搭建好一台memcached服务器，并对memcached进行简单的增、删、改、查操作：
+安装memcached软件，并启动服务
+使用telnet测试memcached服务
+对memcached进行增、删、改、查等操作
+
+
+步骤一：构建memcached服务
+
+1）使用yum安装软件包memcached
+
+[root@proxy ~]# yum -y  install   memcached
+[root@proxy ~]# rpm -qa memcached
+memcached-1.4.15-10.el7_3.1.x86_64
+2) memcached配置文件（查看即可，不需要修改）
+
+[root@proxy ~]# vim /usr/lib/systemd/system/memcached.service
+ExecStart=/usr/bin/memcached -u $USER -p $PORT -m $CACHESIZE -c $MAXCONN $OPTIONS
+#以什么身份什么端口起/usr/bin/memcached这个程序
+#如果由某些脚本或者程序需要使用systemctl启动,只需要在该目录下创建一个类似的文件,可以复制别人的修改而成
+
+[root@proxy ~]# vim /etc/sysconfig/memcached
+PORT="11211"
+USER="memcached"
+MAXCONN="1024"
+CACHESIZE="64"
+OPTIONS=""
+
+3）启动服务并查看网络连接状态验证是否开启成功：
+[root@proxy ~]# systemctl  start  memcached
+[root@proxy ~]# systemctl  status  memcached
+[root@proxy ~]# netstat  -anptu  |  grep memcached
+
+web1与web2上搭建LNMP,proxy作为数据库服务器(使用的是memcache数据库)
+web1与web2要访问memcache数据库需要安装yum -y install  php-pecl-memcache这个扩展模块
+安装完需要重启php-fpm这个php解释器服务,否则也无法访问该数据库
+
+

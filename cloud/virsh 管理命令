@@ -1,0 +1,47 @@
+virsh list [--all]
+##列出虚拟机
+
+virsh net-list [--all]
+##列出虚拟网络
+
+virsh autostart 虚拟机名称 
+##设置虚拟机开机自启
+
+qemu-img create -f 格式 磁盘文件 大小
+##创建新的镜像文件
+
+qemu-img info 磁盘文件
+##查询镜像文件的信息
+
+-b 使用后端模板文件
+qemu-img create -b disk.img -f qcow2 disk1.img
+
+COW技术原理
+copy on write 写时复制
+前端盘的修改不回写到后端盘(原始盘)
+
+============================================
+virsh网络管理
+
+virsh net-list ##查看虚拟网络
+virsh net-define vbr.xml ##创建虚拟网络
+virsh net-undefine vbr ##删除虚拟网络
+virsh net-start vbr ##启动虚拟网络
+virsh net-destroy vbr ##停止虚拟网络
+virsh net-edit vbr  ##修改vbr网络的配置
+virsh net-autostart vbr ##设置vbr虚拟网络开机自启
+
+============================================
+xml管理
+
+virsh dumpxml 虚拟机名 > 虚拟机名.xml
+##导出虚拟机的xml配置文件
+
+virsh edit 虚拟机名
+##修改虚拟机的xml配置文件
+
+virsh define 虚拟机xml配置文件的绝对路径
+##根据xml配置文件定义新的虚拟机
+
+virsh undefine 虚拟机名
+##删除虚拟机

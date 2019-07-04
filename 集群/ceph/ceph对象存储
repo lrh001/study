@@ -1,0 +1,35 @@
+1）准备实验环境，要求如下：
+IP地址:192.168.4.15
+主机名:node5
+配置yum源（包括rhel、ceph的源）
+与Client主机同步时间
+node1允许无密码远程node5
+修改node1的/etc/hosts，并同步到所有node主机
+
+2）部署RGW软件包
+[root@node1 ~]# ceph-deploy install --rgw node5
+同步配置文件与密钥到node5
+[root@node1 ~]# cd /root/ceph-cluster
+[root@node1 ~]# ceph-deploy admin node5
+
+3）新建网关实例
+启动一个rgw服务
+[root@node1 ~]# ceph-deploy rgw create node5
+登陆node5验证服务是否启动
+[root@node5 ~]# ps aux |grep radosgw
+ceph      4109  0.2  1.4 2289196 14972 ?       Ssl  22:53   0:00 /usr/bin/radosgw -f --cluster ceph --name client.rgw.node4 --setuser ceph --setgroup ceph
+[root@node5 ~]# systemctl  status ceph-radosgw@\*
+
+4）修改服务端口
+登陆node5，RGW默认服务端口为7480，修改为8000或80更方便客户端记忆和使用
+[root@node5 ~]#  vim  /etc/ceph/ceph.conf
+[client.rgw.node5]
+host = node5
+rgw_frontends = "civetweb port=8000"
+//node5为主机名
+//civetweb是RGW内置的一个web服务
+步骤二：客户端测试
+
+1）curl测试
+[root@client ~]# curl  192.168.4.15:8000
+<?xml version="1.0" encoding="UTF-8"?><ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Owner><ID>anonymous</ID><DisplayName></DisplayName></Owner><Buckets></Buckets></ListAllMyBucketsResult>

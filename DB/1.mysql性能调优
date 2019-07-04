@@ -1,0 +1,26 @@
+show variables like "%关键字%";
+##模糊查询变量
+
+show global status;
+##查看全局状态
+
+
+max_connections:最大连接数
+Max_used_connections:历史最高连接数
+Max_used_connections/max_connections<=0.85比较合理
+
+
+=============================================
+
+[mysqld]
+
+validate_password_policy=0
+validate_password_length=6
+max_connections=300
+general-log ###开启查询日志
+slow-query-log ###开启慢查询日志(默认10秒)
+log-queries-not-using-indexes ###将未使用索引查询的语句写入到慢查询日志中
+
+
+show global status like "qcache%";
+##查看状态缓存

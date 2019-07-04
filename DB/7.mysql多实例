@@ -1,0 +1,42 @@
+多实例：一台物理机运行多个数据库服务
+
+优点：节省运维成本
+　　　提高硬件利用
+
+1.安装多实例的软件包
+
+2.修改配置文件
+vim /etc/my.cnf
+[mysqld_multi]
+mysqld = /usr/local/mysql/mysqld_safe
+mysqladmin = /usr/local/mysql/mysqladmin
+user = root
+
+[mysqld1]
+datadir=/dir1 ##目录自己指定创建
+port=3307　##端口自己指定
+socket=/dir1/mysql1.sock　##socket文件名自己指定
+log-error=/dir1/mysql1.error　##错误日志文件自己指定
+pid-file=/dir1/mysql1.pid　##pid文件自己指定
+
+[mysqld2]
+datadir=/dir2
+port=3308
+socket=/dir2/mysql2.sock
+log-error=/dir2/mysql2.error
+pid-file=/dir2/mysql2.pid
+
+3.数据初始化
+/usr/local/mysql/bin/mysqld_multi start 1
+##启动编号为１的数据库服务
+##启动过程中会出现初始密码
+
+/usr/local/mysql/bin/mysql　-uroot -p'初始密码' -S /dir1/mysql1.sock
+##本地连接标号为１的数据库
+
+修改数据库密码
+alter user root@'localhost' identified by "123456";
+
+4.停止某个实例
+/usr/local/mysql/bin/mysqld_multi --user=root --password=123456 stop 1
+##停止实例１

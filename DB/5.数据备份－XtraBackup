@@ -1,0 +1,114 @@
+装包
+yum -y install libev-4.15-1.el6.rf.x86_64.rpm
+yum -y install percona-xtrabackup-24-2.4.7-1.el7.x86_64.rpm
+
+
+热备，备份到哪一行锁哪一行，备份完就解锁
+数据恢复时需要清空数据库目录下的所有数据，即：需要清空/var/lib/mysql 注：不清空会报错
+所以备份时需要将自带的库一起备份
+
+innobackuppex　<选项>　备份路径
+
+选项如下：
+    --host
+    --port
+    --user
+--password
+--databases：未指定则代表所有
+--redo-only:日志合并
+--apply-log:准备还原（回滚日志）
+--copy-back:恢复数据
+--incremental 目录名:增量备份
+--incremental-basedir=目录名:增量备份时，指定上一次备份数据存储的目录名
+--incremental-dir=目录名:恢复数据时，指定增量备份数据存储的目录名
+--no-timestamp：备份时不创建指定目录下的日期名字的子目录
+
+
+完全备份与恢复
+
+备份
+innobackupex --user root --password 123456 /allbak --no-timestamp
+
+恢复
+停止mysqld服务
+
+innobackupex --apply-log /allbak/
+cat xtrabackup_checkpoints
+＃＃命令执行后backup_type = full-prepared
+＃＃命令执行前backup_type = full-backuped
+
+rm -rf /var/lib/mysql/*
+innobackupex --copy-back /allbak/
+chown -R mysql:mysql /var/lib/mysql
+systemctl restart mysqld
+
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+增量备份与恢复
+
+首次备份备份所有数据
+innobackupex --user root --password 123456 /fullbak --no-timestamp
+
+增量备份
+innobackupex --user root --password 123456 --incremental /new1 --incremental-basedir=/fullbak --no-timestamp
+
+增量备份
+innobackupex --user root --password 123456 --incremental /new2 --incremental-basedir=/new1 --no-timestamp
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+增量恢复数据
+
+
+准备恢复数据
+innobackupex --apply-log --redo-only /fullbak/
+
+合并日志（注意：合并的顺序必须按照备份的顺序合并，合并完的增量备份则没有作用了，可以删除）
+innobackupex --apply-log --redo-only /fullbak/ --incremental-dir=/new1
+innobackupex --apply-log --redo-only /fullbak/ --incremental-dir=/new2
+
+把备份文件拷贝回数据库目录下
+拷贝之前需要清除/var/lib/mysql下的所有数据
+innobackupex --copy-back /fullbak/
+
+systemctl restart mysqld
+
+＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃＃
+
+恢复完全备份中的一张数据
+备份db5库的所有数据
+innobackupex --user root --password 123456 --databases="db5" /db5bak --no-timestamp
+
+innobackupex --user root --password 123456 --apply-log --export /db5bak/
+＃＃导出备份库中的表信息
+
+创建需要恢复的表，表的结构需要跟之前一致
+
+删除该表的空间结够
+alter table 表名 discard tablespace;
+
+cp /db5bak/表名.{cfg,exp,ibd} /var/lib/mysql/db5
+＃＃将导出的这３个文件复制到库下
+
+chown mysql:mysql /var/lib/mysql/db5/表名.{cfg,exp,ibd}
+＃＃修改刚刚拷贝的文件的权限
+
+alter table 表名 import tablespace;
+＃＃导入表空间
+
+rm -rf /var/lib/mysql/db5/表名.{cfg,exp}
+＃＃恢复后删除这２个文件导出文件
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

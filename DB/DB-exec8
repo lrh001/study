@@ -1,0 +1,22 @@
+1.简述什么是MHA
+MHA(master high availability)
+由日本DeNA公司youshimaton开发
+是一套优秀实现mysql高可用的解决方案
+数据库的自动故障切换操作能做到30秒内完成
+在切换过程中保证数据的一致性,以达到真正意义上的高可用
+
+2.MHA有几部分组成
+MHA Manager(管理节点):既可以部署在slave节点上也可以部署在独立的机器上
+MHA Node(数据节点):部署在数据库服务器上
+
+3.简述MHA的原理
+管理节点监控所有的master节点,当master节点故障时,可自动将最新数据的备份的master节点提升为master,再讲其他所有的节点重新指向的master.整个故障转移过程对应用程序完全透明
+
+4.manager的工具有哪些?
+masterha_check_ssh 检查MHA的SSH配置状况
+masterha_check_repl 检查Mysql的主从复制状况
+masterha_manager 启动MHA
+masterha_master_monitor 检测master是否宕机
+masterha_master_switch 控制故障转移(自动或者手动)
+masterha_conf_host 添加或删除配置的server信息
+

@@ -1,0 +1,29 @@
+nginx web服务器,代理服务器
+stream http,tcp,udp调度器(nginx1.9版本以后) 7层调度(http调度),4层调度
+http{
+     upstream 集群名称{
+           ip_hash; #相同客户端访问相同服务器
+           server ip:port;
+           server ip:port;
+       }
+       server {
+               listen 80;      
+               server_name localhost;
+               proxy_pass http://集群名称;  #优先执行转发
+               location {
+                   
+                        root html;
+                    }
+       }
+}
+
+./configure  --with-stream
+stream {
+         upstream 名称 {
+            server ip:port;
+            }
+         server {
+                listen port;
+                proxy_pass 名称; 
+            }
+}
